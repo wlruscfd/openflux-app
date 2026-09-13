@@ -13,6 +13,7 @@
     <string name="home_status_stopped">Не подключено</string>
     <string name="home_status_connecting">Подключение…</string>
     <string name="home_status_connecting_channel">Устанавливаем туннель…</string>
+    <string name="home_status_wrong_editor_type">Документ создан в новом редакторе Яндекса — попробуйте документ из старого редактора или переключите профиль на Волгу</string>
     <string name="home_status_connected">Подключено</string>
     <string name="home_status_error">Ошибка: %1$s</string>
     <string name="home_no_profile">Нет профиля — добавьте его на вкладке «Профили»</string>

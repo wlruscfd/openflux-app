@@ -13,6 +13,7 @@
     <string name="home_status_stopped">Not connected</string>
     <string name="home_status_connecting">Connecting…</string>
     <string name="home_status_connecting_channel">Establishing the tunnel…</string>
+    <string name="home_status_wrong_editor_type">This document was created in Yandex\'s newer editor - try a document from the old (classic) editor, or switch this profile to Volga</string>
     <string name="home_status_connected">Connected</string>
     <string name="home_status_error">Error: %1$s</string>
     <string name="home_no_profile">No profile selected — add one on the Profiles tab</string>
