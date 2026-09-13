@@ -28,6 +28,7 @@ class ProfileRepository(
                 manualTransport = profile.manualTransport.name,
                 mtu = profile.mtu,
                 dnsUpstream = profile.dnsUpstream,
+                forceBootstrapDns = profile.forceBootstrapDns,
                 autoReconnect = profile.autoReconnect,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
             ),
@@ -62,6 +63,7 @@ class ProfileRepository(
         maxUid = s.maxUid,
         mtu = mtu,
         dnsUpstream = dnsUpstream,
+        forceBootstrapDns = forceBootstrapDns,
         autoReconnect = autoReconnect,
     )
 }
@@ -94,6 +96,9 @@ fun Profile.toStartTunnelConfigJson(
     }
     put("mtu", mtu)
     put("dns_upstream", dnsUpstream)
+    if (forceBootstrapDns.isNotBlank()) {
+        put("force_bootstrap_dns", forceBootstrapDns)
+    }
     if (siteSplitMode != SplitTunnelMode.OFF && siteSplitSites.isNotEmpty()) {
         // lowercasing the enum's name gives exactly the wire strings the Go
         // package's ParseSiteSplitMode expects ("exclude"/"include").

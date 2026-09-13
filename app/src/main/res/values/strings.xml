@@ -81,6 +81,10 @@
     <string name="profile_edit_advanced">Advanced settings</string>
     <string name="profile_edit_mtu">MTU</string>
     <string name="profile_edit_dns">DNS server</string>
+    <string name="profile_edit_dns_hint">Queried once the tunnel is up. Plain host also works: tls://host (DNS-over-TLS) or https://host/path (DNS-over-HTTPS).</string>
+    <string name="profile_edit_force_bootstrap_dns">Force bootstrap DNS (optional)</string>
+    <string name="profile_edit_force_bootstrap_dns_placeholder">1.1.1.1</string>
+    <string name="profile_edit_force_bootstrap_dns_hint">Only for resolving the connection\'s own address before the tunnel exists - if the default public resolvers are unreachable on this network, pin a server that works instead of trying them. Leave blank unless you\'re having trouble connecting at all.</string>
     <string name="profile_edit_auto_reconnect">Reconnect automatically</string>
     <string name="profile_edit_save">Save</string>
     <string name="profile_edit_cancel">Cancel</string>

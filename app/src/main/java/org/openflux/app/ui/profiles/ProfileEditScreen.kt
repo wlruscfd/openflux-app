@@ -221,6 +221,15 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                 value = current.dnsUpstream,
                 onValueChange = { profile = current.copy(dnsUpstream = it) },
                 label = { Text(stringResource(R.string.profile_edit_dns)) },
+                supportingText = { Text(stringResource(R.string.profile_edit_dns_hint)) },
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            )
+            OutlinedTextField(
+                value = current.forceBootstrapDns,
+                onValueChange = { profile = current.copy(forceBootstrapDns = it) },
+                label = { Text(stringResource(R.string.profile_edit_force_bootstrap_dns)) },
+                placeholder = { Text(stringResource(R.string.profile_edit_force_bootstrap_dns_placeholder)) },
+                supportingText = { Text(stringResource(R.string.profile_edit_force_bootstrap_dns_hint)) },
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             )
             Row(

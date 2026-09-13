@@ -37,5 +37,13 @@ data class Profile(
     val maxUid: Long = 0,
     val mtu: Int = 1400,
     val dnsUpstream: String = "77.88.8.8",
+    // Forces the resolver used for the transport's own bootstrap lookups
+    // (docs.yandex.ru and friends) before the tunnel exists to carry
+    // anything else, replacing the two fixed public resolvers that would
+    // otherwise be tried - for a network whose default path to those two
+    // is unreliable but a different, locally-reachable server works fine.
+    // Blank leaves the defaults in place. Unrelated to dnsUpstream above,
+    // which is only ever queried once the tunnel is already up.
+    val forceBootstrapDns: String = "",
     val autoReconnect: Boolean = true,
 )

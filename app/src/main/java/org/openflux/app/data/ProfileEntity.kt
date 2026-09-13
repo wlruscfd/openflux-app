@@ -16,6 +16,7 @@ data class ProfileEntity(
     val manualTransport: String, // ManualTransport.name; only meaningful when mode == MANUAL
     val mtu: Int,
     val dnsUpstream: String,
+    val forceBootstrapDns: String = "",
     val autoReconnect: Boolean,
     val createdAt: Long,
 )
