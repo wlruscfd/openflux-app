@@ -125,8 +125,16 @@ fun HomeScreen(
                 ConnectionButton(
                     state = buttonState,
                     label = statusLabel(status, channelReady, lastRetryDetail),
-                    enabled = activeProfile != null &&
-                        (buttonState == ConnectionButtonState.Idle || buttonState == ConnectionButtonState.Connected),
+                    // Disabled only when there's genuinely nothing this tap
+                    // could do: idle with no profile picked yet. Every other
+                    // state - Connecting, Establishing, Connected - has a
+                    // real action (cancel or disconnect), and onClick below
+                    // already handles all of them via `connected`; disabling
+                    // the button while stuck retrying (a real, reachable
+                    // state - a doc_url that fails every attempt the same
+                    // way) left the notification's own disconnect action as
+                    // the only way to back out.
+                    enabled = buttonState != ConnectionButtonState.Idle || activeProfile != null,
                     onClick = {
                         if (connected) {
                             onDisconnectRequested()
