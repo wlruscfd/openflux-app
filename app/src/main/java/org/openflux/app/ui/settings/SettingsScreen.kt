@@ -64,7 +64,7 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onOpenSplitTunnel: () -> Unit) {
+fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> Unit) {
     val app = LocalOpenFluxApp.current
     val viewModel: SettingsViewModel = viewModel(
         factory = viewModelFactory { initializer { SettingsViewModel(app.settingsRepository) } },
@@ -146,6 +146,13 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit) {
 
             OutlinedButton(onClick = onOpenSplitTunnel, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.settings_split_tunnel))
+            }
+
+            OutlinedButton(
+                onClick = onOpenSiteSplitTunnel,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Text(stringResource(R.string.settings_site_split_tunnel))
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))

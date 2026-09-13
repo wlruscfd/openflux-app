@@ -90,6 +90,9 @@ class OpenFluxVpnService : VpnService(), Protector {
 
             applySplitTunneling(app, builder)
 
+            val siteSplitMode = app.settingsRepository.splitTunnelSitesMode.first()
+            val siteSplitSites = app.settingsRepository.splitTunnelSites.first()
+
             val pfd = try {
                 builder.establish()
             } catch (t: Throwable) {
@@ -109,7 +112,12 @@ class OpenFluxVpnService : VpnService(), Protector {
             establishedFd = fd
 
             try {
-                Mobile.startTunnel(fd.toLong(), profile.toStartTunnelConfigJson(), this@OpenFluxVpnService, callback)
+                Mobile.startTunnel(
+                    fd.toLong(),
+                    profile.toStartTunnelConfigJson(siteSplitMode, siteSplitSites),
+                    this@OpenFluxVpnService,
+                    callback,
+                )
             } catch (t: Throwable) {
                 callback.onStatus("error:${t.message}")
                 stopSelf()

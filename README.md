@@ -48,7 +48,15 @@ The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
   connect over the tunnel yet.
 - IPv6 data path — IPv6 traffic is routed into the tunnel (so it doesn't leak outside it) but is
   then simply dropped rather than relayed.
-- Per-app split tunneling.
+
+## Split tunneling
+
+Both kinds are configured globally (Settings) and apply to every profile:
+
+- **Per-app** — the system VPN filters whole apps (Android's `VpnService` per-app routing).
+- **Per-site** — the gateway routes by website instead: exclude a domain from the tunnel, or tunnel
+  only the listed domains. Sites are identified by their TLS SNI, with the gateway's DNS cache
+  covering SNI-less connections.
 
 ## Profiles
 

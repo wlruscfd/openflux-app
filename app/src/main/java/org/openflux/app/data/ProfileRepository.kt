@@ -79,7 +79,10 @@ class ProfileRepository(
  * call this for a KEY profile with a blank docUrl - see
  * Profile.isReadyToConnect.
  */
-fun Profile.toStartTunnelConfigJson(): String = JSONObject().apply {
+fun Profile.toStartTunnelConfigJson(
+    siteSplitMode: SplitTunnelMode = SplitTunnelMode.OFF,
+    siteSplitSites: Set<String> = emptySet(),
+): String = JSONObject().apply {
     put("mode", "manual")
     put("transport", transportName(manualTransport))
     when (manualTransport) {
@@ -91,6 +94,12 @@ fun Profile.toStartTunnelConfigJson(): String = JSONObject().apply {
     }
     put("mtu", mtu)
     put("dns_upstream", dnsUpstream)
+    if (siteSplitMode != SplitTunnelMode.OFF && siteSplitSites.isNotEmpty()) {
+        // lowercasing the enum's name gives exactly the wire strings the Go
+        // package's ParseSiteSplitMode expects ("exclude"/"include").
+        put("site_split_mode", siteSplitMode.name.lowercase())
+        put("site_split_sites", org.json.JSONArray(siteSplitSites.toList().sorted()))
+    }
 }.toString()
 
 /**

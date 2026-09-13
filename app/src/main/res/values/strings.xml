@@ -193,6 +193,7 @@
     <string name="settings_default_mtu">Default MTU for new profiles</string>
     <string name="settings_default_dns">Default DNS server for new profiles</string>
     <string name="settings_split_tunnel">Split tunneling</string>
+    <string name="settings_site_split_tunnel">Site split tunneling</string>
     <string name="settings_battery_hint">Battery optimization can throttle or kill the VPN\'s background connection (and any in-progress server deploy) once the app isn\'t on screen. Optional - only do this if you\'ve noticed disconnects.</string>
     <string name="settings_battery_optimization">Ignore battery optimizations</string>
     <string name="settings_battery_already_unrestricted">Battery optimization is already off for this app.</string>
@@ -205,6 +206,15 @@
     <string name="split_tunnel_filter">Search apps</string>
     <string name="split_tunnel_loading">Loading installed apps…</string>
     <string name="split_tunnel_off_hint">All apps use the tunnel.</string>
+
+    <string name="site_split_tunnel_title">Site split tunneling</string>
+    <string name="site_split_tunnel_hint">Route traffic per website instead of per app: exclude a domain from the tunnel, or tunnel only the listed domains. Accepts domains (example.com), wildcards (*.ru) and IP addresses (1.2.3.4). Applies to every profile.</string>
+    <string name="site_split_tunnel_input_label">Domain</string>
+    <string name="site_split_tunnel_input_placeholder">example.com</string>
+    <string name="site_split_tunnel_add">Add site</string>
+    <string name="site_split_tunnel_remove">Remove site</string>
+    <string name="site_split_tunnel_empty">No sites added yet.</string>
+    <string name="site_split_tunnel_off_hint">All sites use the tunnel.</string>
 
     <string name="vpn_notification_channel">OpenFlux VPN</string>
     <string name="vpn_notification_connected">Connected via %1$s</string>

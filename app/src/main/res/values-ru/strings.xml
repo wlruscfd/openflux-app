@@ -175,6 +175,7 @@
     <string name="settings_default_mtu">MTU по умолчанию для новых профилей</string>
     <string name="settings_default_dns">DNS по умолчанию для новых профилей</string>
     <string name="settings_split_tunnel">Раздельное туннелирование</string>
+    <string name="settings_site_split_tunnel">Туннелирование по сайтам</string>
     <string name="settings_battery_hint">Оптимизация батареи может замедлять или обрывать фоновое соединение VPN (и незавершённый деплой сервера), пока приложение не на экране. Необязательно — включайте, только если замечали обрывы.</string>
     <string name="settings_battery_optimization">Игнорировать оптимизацию батареи</string>
     <string name="settings_battery_already_unrestricted">Оптимизация батареи для этого приложения уже отключена.</string>
@@ -187,6 +188,15 @@
     <string name="split_tunnel_filter">Поиск приложений</string>
     <string name="split_tunnel_loading">Загрузка списка приложений…</string>
     <string name="split_tunnel_off_hint">Все приложения используют туннель.</string>
+
+    <string name="site_split_tunnel_title">Туннелирование по сайтам</string>
+    <string name="site_split_tunnel_hint">Маршрутизация трафика по сайтам, а не по приложениям: исключите домен из туннеля или туннелируйте только указанные домены. Принимаются домены (example.com), маски (*.ru) и IP-адреса (1.2.3.4). Применяется ко всем профилям.</string>
+    <string name="site_split_tunnel_input_label">Домен</string>
+    <string name="site_split_tunnel_input_placeholder">example.com</string>
+    <string name="site_split_tunnel_add">Добавить сайт</string>
+    <string name="site_split_tunnel_remove">Удалить сайт</string>
+    <string name="site_split_tunnel_empty">Сайты пока не добавлены.</string>
+    <string name="site_split_tunnel_off_hint">Все сайты используют туннель.</string>
 
     <string name="vpn_notification_channel">OpenFlux VPN</string>
     <string name="vpn_notification_connected">Подключено через %1$s</string>
