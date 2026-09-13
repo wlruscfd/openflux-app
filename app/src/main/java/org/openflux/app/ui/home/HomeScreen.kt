@@ -97,6 +97,7 @@ fun HomeScreen(
     val status by OpenFluxVpnService.callback.status.collectAsState()
     val channelReady by OpenFluxVpnService.callback.channelReady.collectAsState()
     val stats by OpenFluxVpnService.callback.stats.collectAsState()
+    val lastRetryDetail by OpenFluxVpnService.callback.lastRetryDetail.collectAsState()
     val connected = status is TunnelStatus.Connected || status is TunnelStatus.Connecting
     val buttonState = when {
         status is TunnelStatus.Connected && channelReady -> ConnectionButtonState.Connected
@@ -123,7 +124,7 @@ fun HomeScreen(
             ) {
                 ConnectionButton(
                     state = buttonState,
-                    label = statusLabel(status, channelReady),
+                    label = statusLabel(status, channelReady, lastRetryDetail),
                     enabled = activeProfile != null &&
                         (buttonState == ConnectionButtonState.Idle || buttonState == ConnectionButtonState.Connected),
                     onClick = {
@@ -269,8 +270,21 @@ private fun ProfilePickerSheet(
 // traffic could actually flow - including on every silent background
 // reconnect after a drop, not just the first connect.
 @Composable
-private fun statusLabel(status: TunnelStatus, channelReady: Boolean): String = when {
+private fun statusLabel(status: TunnelStatus, channelReady: Boolean, lastRetryDetail: String?): String = when {
     status is TunnelStatus.Stopped -> stringResource(R.string.home_status_stopped)
+    // A doc_url whose document was created in Yandex's newer editor makes
+    // every single retry fail with the exact same "balancer_url missing"
+    // error forever - no number of retries fixes it, so surfacing that
+    // specific, actionable reason here beats leaving the user staring at a
+    // generic "connecting" spinner that will never resolve on its own (see
+    // server/transport/yandex/yandex.go's fetchDocInfo, which already
+    // rewrote this error message once to point at Volga - this is that same
+    // signal, one layer up). Scoped to the two "still trying" states only,
+    // so a genuine, unrelated TunnelStatus.Error never gets misread as this
+    // just because an earlier retry in the same session happened to be one.
+    (status is TunnelStatus.Connecting || (status is TunnelStatus.Connected && !channelReady)) &&
+        lastRetryDetail?.contains("balancer_url", ignoreCase = true) == true ->
+        stringResource(R.string.home_status_wrong_editor_type)
     status is TunnelStatus.Connecting -> stringResource(R.string.home_status_connecting)
     status is TunnelStatus.Connected && !channelReady -> stringResource(R.string.home_status_connecting_channel)
     status is TunnelStatus.Connected -> stringResource(R.string.home_status_connected)

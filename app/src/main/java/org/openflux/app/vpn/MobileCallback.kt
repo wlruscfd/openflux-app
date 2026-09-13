@@ -85,6 +85,16 @@ class MobileCallback : Callback {
     private val _stats = MutableStateFlow(TrafficStats())
     val stats: StateFlow<TrafficStats> = _stats
 
+    // The raw detail text of the most recent retry, so the Home screen can
+    // recognize specific, actionable failures (e.g. a doc_url that needs
+    // Volga instead of Yandex Docs - see HomeScreen.statusLabel) instead of
+    // just showing a generic "connecting" spinner through every retry, no
+    // matter how many times the exact same non-recoverable error repeats.
+    // Cleared once the channel actually connects or the tunnel stops, kept
+    // through every retry in between (that's the whole point).
+    private val _lastRetryDetail = MutableStateFlow<String?>(null)
+    val lastRetryDetail: StateFlow<String?> = _lastRetryDetail
+
     private val _log = MutableStateFlow<List<TunnelLogEntry>>(emptyList())
     val log: StateFlow<List<TunnelLogEntry>> = _log
 
@@ -114,7 +124,10 @@ class MobileCallback : Callback {
     override fun onLogEvent(code: String, detail: String) {
         when (code) {
             "connecting", "retrying" -> _channelReady.value = false
-            "connected" -> _channelReady.value = true
+            "connected" -> {
+                _channelReady.value = true
+                _lastRetryDetail.value = null
+            }
         }
         val entry = when (code) {
             "connecting" -> TunnelLogEntry(
@@ -134,6 +147,7 @@ class MobileCallback : Callback {
                 // may itself contain "|" - only the first three separators
                 // are ours to split on (see transport.EventRetrying's doc).
                 val parts = detail.split("|", limit = 4)
+                _lastRetryDetail.value = parts.getOrNull(3).orEmpty()
                 TunnelLogEntry(
                     id = nextLogEntryId.getAndIncrement(),
                     timestampMillis = System.currentTimeMillis(),
@@ -180,6 +194,7 @@ class MobileCallback : Callback {
         _status.value = TunnelStatus.Stopped
         _stats.value = TrafficStats()
         _channelReady.value = false
+        _lastRetryDetail.value = null
         // The log is intentionally not cleared here - right after a failed
         // attempt is exactly when seeing what just happened matters most.
     }
