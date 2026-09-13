@@ -1,6 +1,8 @@
 package org.openflux.app.ui
 
 import android.net.Uri
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -19,7 +21,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -37,6 +38,7 @@ import org.openflux.app.ui.home.HomeScreen
 import org.openflux.app.ui.logs.TunnelLogsScreen
 import org.openflux.app.ui.profiles.ProfileEditScreen
 import org.openflux.app.ui.profiles.ProfileListScreen
+import org.openflux.app.ui.profiles.QrScanScreen
 import org.openflux.app.ui.settings.SettingsScreen
 import org.openflux.app.ui.settings.SplitTunnelScreen
 
@@ -54,6 +56,7 @@ private const val DEPLOY_EDIT_ROUTE = "deploy_edit"
 private const val DEPLOY_DETAIL_ROUTE = "deploy_detail"
 private const val DEPLOY_ID_ARG = "serverId"
 private const val SPLIT_TUNNEL_ROUTE = "split_tunnel"
+private const val QR_SCAN_ROUTE = "qr_scan"
 
 @Composable
 fun OpenFluxNavHost(
@@ -135,22 +138,28 @@ fun OpenFluxNavHost(
                 TunnelLogsScreen()
             }
             composable(Destination.Profiles.route) {
-                val clipboardManager = LocalClipboardManager.current
                 ProfileListScreen(
                     onAddProfile = {
-                        // A deep link copied from the admin panel/API is the
-                        // common case for "+" here - prefill from it when
-                        // there's one on the clipboard, same as tapping an
-                        // openflux://import link directly, and fall back to
-                        // a blank profile otherwise (ProfileDeepLink.parse
-                        // returns null for anything that isn't one, so this
-                        // is never wrong to attempt).
-                        val clipboardText = clipboardManager.getText()?.text
-                        importedProfile = clipboardText?.let { ProfileDeepLink.parse(Uri.parse(it)) }
+                        // Plain "add" from the FAB menu: start a blank
+                        // profile draft, never prefilled from the clipboard
+                        // (that's a separate menu item now).
+                        importedProfile = null
                         navController.navigate("$PROFILE_EDIT_ROUTE/new") { launchSingleTop = true }
                     },
+                    onScanQr = { navController.navigate(QR_SCAN_ROUTE) },
                     onEditProfile = { id -> navController.navigate("$PROFILE_EDIT_ROUTE/$id") },
                 )
+            }
+            composable(
+                route = QR_SCAN_ROUTE,
+                // The camera preview keeps showing its (black/frozen) surface
+                // for the duration of the default pop animation, so leaving
+                // the scanner leaves a camera-coloured rectangle fading out
+                // behind the profiles list. Pop instantly instead; the scan
+                // screen's onDispose then unbinds CameraX right away.
+                popExitTransition = { fadeOut(animationSpec = tween(0)) },
+            ) {
+                QrScanScreen(onDone = { navController.popBackStack() })
             }
             composable(
                 route = "$PROFILE_EDIT_ROUTE/{$PROFILE_ID_ARG}",

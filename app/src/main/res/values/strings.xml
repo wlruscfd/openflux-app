@@ -40,10 +40,24 @@
 
     <string name="profiles_title">Profiles</string>
     <string name="profiles_add">Add profile</string>
+    <string name="profiles_add_manual">Вручную</string>
+    <string name="profiles_add_clipboard">Из буфера обмена</string>
+    <string name="profiles_add_qr">Сканировать QR-код</string>
+    <string name="profiles_clipboard_added">Profile added from clipboard</string>
+    <string name="profiles_clipboard_invalid">Clipboard doesn\'t contain a valid profile link</string>
     <string name="profiles_empty">No profiles yet. Tap + to add one.</string>
     <string name="profiles_delete">Delete</string>
     <string name="profiles_active_badge">Active</string>
     <string name="home_profile_selector_select">Select profile</string>
+
+    <string name="qr_scan_title">Сканирование QR-кода</string>
+    <string name="qr_scan_back">Назад к профилям</string>
+    <string name="qr_scan_hint">Наведите камеру на QR-код профиля</string>
+    <string name="qr_scan_permission_message">Для сканирования QR-кода профиля нужен доступ к камере.</string>
+    <string name="qr_scan_permission_button">Разрешить доступ</string>
+    <string name="qr_scan_permission_denied">Доступ к камере запрещён — невозможно сканировать QR-коды.</string>
+    <string name="qr_scan_invalid">Это не QR-код профиля</string>
+    <string name="qr_scan_added">Профиль добавлен</string>
 
     <string name="profile_edit_new_title">New profile</string>
     <string name="profile_edit_title">Edit profile</string>
@@ -75,6 +89,10 @@
     <string name="profile_share_send">Send</string>
     <string name="profile_share_copy">Copy link</string>
     <string name="profile_share_copied">Link copied</string>
+    <string name="profile_share_menu_title">Поделиться профилем</string>
+    <string name="profile_share_export_clipboard">Экспорт в буфер обмена</string>
+    <string name="profile_share_qr_code">QR-код</string>
+    <string name="profile_share_clipboard_copied">Ссылка скопирована</string>
 
     <string name="deploy_title">Deploy</string>
     <string name="deploy_add_server">Add server</string>

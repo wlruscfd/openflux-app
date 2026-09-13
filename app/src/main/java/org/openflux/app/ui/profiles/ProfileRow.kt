@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,7 @@ fun ProfileRow(
     active: Boolean,
     onSelect: () -> Unit,
     onEdit: () -> Unit,
+    onShare: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -59,6 +61,11 @@ fun ProfileRow(
                     if (active) {
                         Text(stringResource(R.string.profiles_active_badge))
                     }
+                }
+            }
+            if (onShare != null) {
+                IconButton(onClick = onShare) {
+                    Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.profile_share_title))
                 }
             }
             IconButton(onClick = onEdit) {

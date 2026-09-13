@@ -108,9 +108,23 @@ dependencies {
     // controlplane's admin API (key/node/ingest-token management).
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // QR code generation only (no camera/scanning) for sharing a profile's
-    // deep link - see ui/profiles/QrCode.kt.
+    // QR code generation for sharing a profile's deep link (encode-only,
+    // see ui/profiles/QrCode.kt) plus zxing's barcode model used by
+    // ui/profiles/QrScanScreen.kt.
     implementation("com.google.zxing:core:3.5.3")
+
+    // QR code scanning (ui/profiles/QrScanScreen.kt): CameraX preview +
+    // ML Kit's bundled, fully offline barcode reader.
+    val cameraxVersion = "1.4.1"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // Extra Material icons (clipboard, QR scanner) for the profile add menu
+    // - the Material 3 icon set ships a small core subset by default.
+    implementation("androidx.compose.material:material-icons-extended")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

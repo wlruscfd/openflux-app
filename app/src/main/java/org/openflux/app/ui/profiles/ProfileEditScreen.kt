@@ -8,12 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -90,11 +86,6 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
     }
 
     val current = profile ?: return
-    var showShareDialog by remember { mutableStateOf(false) }
-
-    if (showShareDialog) {
-        ShareProfileDialog(profile = current, onDismiss = { showShareDialog = false })
-    }
 
     Scaffold(
         topBar = {
@@ -105,11 +96,6 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             if (profileId == null) R.string.profile_edit_new_title else R.string.profile_edit_title,
                         ),
                     )
-                },
-                actions = {
-                    IconButton(onClick = { showShareDialog = true }) {
-                        Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.profile_share_title))
-                    }
                 },
             )
         },

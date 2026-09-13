@@ -4,6 +4,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Only requested when the user picks "scan QR code" in the profiles
+         tab (a user-initiated, optional action - see QrScanScreen.kt). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
