@@ -96,6 +96,9 @@ fun Profile.toStartTunnelConfigJson(
     }
     put("mtu", mtu)
     put("dns_upstream", dnsUpstream)
+    if (keyToken.isNotBlank()) {
+        put("key_token", keyToken)
+    }
     if (forceBootstrapDns.isNotBlank()) {
         put("force_bootstrap_dns", forceBootstrapDns)
     }
