@@ -16,6 +16,7 @@ import mobile.Protector
 import org.openflux.app.MainActivity
 import org.openflux.app.OpenFluxApplication
 import org.openflux.app.R
+import org.openflux.app.data.ManualTransport
 import org.openflux.app.data.SplitTunnelMode
 import org.openflux.app.data.isReadyToConnect
 import org.openflux.app.data.toStartTunnelConfigJson
@@ -71,7 +72,12 @@ class OpenFluxVpnService : VpnService(), Protector {
                 return@launch
             }
             if (!profile.isReadyToConnect) {
-                callback.onStatus("error:key not resolved yet - open the profile and tap \"Check key\"")
+                val reason = if (profile.manualTransport == ManualTransport.YANDEX_MULTISTREAM) {
+                    "multistream needs 2+ doc URLs - open the profile and add another"
+                } else {
+                    "key not resolved yet - open the profile and tap \"Check key\""
+                }
+                callback.onStatus("error:$reason")
                 stopSelf()
                 return@launch
             }

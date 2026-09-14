@@ -124,12 +124,23 @@ fun Profile.toStartTunnelConfigJson(
 }.toString()
 
 /**
- * False only for a KEY profile that has never been resolved (no deep-link
- * import, no successful "check key" yet) - connecting it would need a live
- * controlplane request this app no longer makes automatically.
+ * False for:
+ * - a KEY profile that has never been resolved (no deep-link import, no
+ *   successful "check key" yet) - connecting it would need a live
+ *   controlplane request this app no longer makes automatically;
+ * - either mode with transport YANDEX_MULTISTREAM but fewer than 2 usable
+ *   doc_urls entries - mobile.StartTunnel rejects that deep inside the Go
+ *   layer ("yandex_multistream requires at least 2 doc_urls"), which is a
+ *   worse place to catch a profile nobody finished configuring than here,
+ *   before the VPN service even starts.
  */
 val Profile.isReadyToConnect: Boolean
-    get() = when (mode) {
-        ProfileMode.KEY -> docUrl.isNotBlank()
-        ProfileMode.MANUAL -> true
+    get() {
+        if (manualTransport == ManualTransport.YANDEX_MULTISTREAM) {
+            return docUrls.count { it.isNotBlank() } >= 2
+        }
+        return when (mode) {
+            ProfileMode.KEY -> docUrl.isNotBlank()
+            ProfileMode.MANUAL -> true
+        }
     }
