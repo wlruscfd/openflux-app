@@ -47,9 +47,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.DecodeHintType
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.NotFoundException
+import com.google.zxing.PlanarYUVLuminanceSource
+import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
 import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
@@ -158,17 +162,19 @@ fun QrScanScreen(onDone: () -> Unit) {
 }
 
 /**
- * Live camera preview + ML Kit QR analysis. Binds to the host LifecycleOwner
- * for the screen's lifetime and unbinds (freeing the camera) on dispose.
- * Detection callbacks arrive on the main thread (ML Kit's default), which is
- * why the lambda can safely touch Compose state.
+ * Live camera preview + zxing QR analysis (same library QrCode.kt uses to
+ * generate codes - pure JVM, no native lib, unlike ML Kit). Binds to the
+ * host LifecycleOwner for the screen's lifetime and unbinds (freeing the
+ * camera) on dispose. QR finder patterns are rotation-invariant, so the Y
+ * plane is decoded as-is without correcting for sensor rotation.
  */
 @Composable
 private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER } }
-    val scanner = remember { BarcodeScanning.getClient() }
+    val reader = remember { MultiFormatReader() }
+    val decodeHints = remember { mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE)) }
     val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
     val onQrTextRef = rememberUpdatedState(onQrText)
 
@@ -186,18 +192,25 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
             analysis.setAnalyzer(analysisExecutor) { imageProxy: ImageProxy ->
-                val mediaImage = imageProxy.image
-                if (mediaImage == null) {
+                val plane = imageProxy.planes.getOrNull(0)
+                if (plane == null) {
                     imageProxy.close()
                     return@setAnalyzer
                 }
-                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                scanner.process(image)
-                    .addOnSuccessListener { barcodes ->
-                        val raw = barcodes.firstOrNull()?.rawValue
-                        if (raw != null) onQrTextRef.value(raw)
-                    }
-                    .addOnCompleteListener { imageProxy.close() }
+                val luminance = plane.toLuminanceBytes(imageProxy.width, imageProxy.height)
+                val source = PlanarYUVLuminanceSource(
+                    luminance, imageProxy.width, imageProxy.height,
+                    0, 0, imageProxy.width, imageProxy.height, false,
+                )
+                val bitmap = BinaryBitmap(HybridBinarizer(source))
+                try {
+                    val result = reader.decode(bitmap, decodeHints)
+                    onQrTextRef.value(result.text)
+                } catch (e: NotFoundException) {
+                    // No QR code in this frame - expected on most frames.
+                } finally {
+                    imageProxy.close()
+                }
             }
 
             try {
@@ -215,10 +228,22 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
                 { runCatching { cameraProviderFuture.get().unbindAll() } },
                 ContextCompat.getMainExecutor(context),
             )
-            scanner.close()
             analysisExecutor.shutdown()
         }
     }
 
     AndroidView(factory = { previewView }, modifier = modifier)
+}
+
+/** Copies the Y plane into a tightly-packed buffer, stripping row-stride padding. */
+private fun ImageProxy.PlaneProxy.toLuminanceBytes(width: Int, height: Int): ByteArray {
+    if (rowStride == width) {
+        return ByteArray(buffer.remaining()).also { buffer.get(it) }
+    }
+    val data = ByteArray(width * height)
+    for (row in 0 until height) {
+        buffer.position(row * rowStride)
+        buffer.get(data, row * width, width)
+    }
+    return data
 }

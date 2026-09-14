@@ -28,6 +28,14 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.0.1"
+
+        // openflux.aar only ships arm64-v8a/armeabi-v7a anyway (see
+        // build_android_aar.sh); drop x86/x86_64 for every other native lib
+        // too instead of shipping them unused (emulator-only, no real phone
+        // needs them).
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -108,19 +116,17 @@ dependencies {
     // controlplane's admin API (key/node/ingest-token management).
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // QR code generation for sharing a profile's deep link (encode-only,
-    // see ui/profiles/QrCode.kt) plus zxing's barcode model used by
-    // ui/profiles/QrScanScreen.kt.
+    // QR code generation (QrCode.kt) and scanning (QrScanScreen.kt) - pure
+    // JVM, no native lib per ABI (unlike ML Kit's barcode-scanning, which
+    // ships a several-MB .so per ABI for the same job).
     implementation("com.google.zxing:core:3.5.3")
 
-    // QR code scanning (ui/profiles/QrScanScreen.kt): CameraX preview +
-    // ML Kit's bundled, fully offline barcode reader.
+    // Camera preview + frame capture for QR scanning (ui/profiles/QrScanScreen.kt).
     val cameraxVersion = "1.4.1"
     implementation("androidx.camera:camera-core:$cameraxVersion")
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // Extra Material icons (clipboard, QR scanner) for the profile add menu
     // - the Material 3 icon set ships a small core subset by default.
