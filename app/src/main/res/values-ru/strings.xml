@@ -58,6 +58,8 @@
     <string name="profile_edit_key_token">Ключ доступа</string>
     <string name="profile_edit_doc_url">Ссылка на Yandex Docs</string>
     <string name="profile_edit_doc_url_key_hint">Заполняется автоматически при импорте ссылки; можно вставить и вручную.</string>
+    <string name="profile_edit_e2e_encryption">Сквозное шифрование (E2E)</string>
+    <string name="profile_edit_e2e_encryption_hint">Шифрует трафик туннеля этим ключом. Включайте только после того, как убедитесь, что экзит-нода обновлена и поддерживает это — старая экзит-нода вообще не понимает зашифрованный трафик.</string>
     <string name="profile_edit_doc_url_yandex_hint">Если не подключается с ошибкой про balancer_url/конфиг — возможно, документ нового типа Yandex Docs, попробуйте транспорт Volga.</string>
     <string name="profile_edit_transport_yandex">Yandex Docs</string>
     <string name="profile_edit_transport_volga">Volga</string>

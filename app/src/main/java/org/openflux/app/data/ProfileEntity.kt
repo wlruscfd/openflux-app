@@ -18,5 +18,6 @@ data class ProfileEntity(
     val dnsUpstream: String,
     val forceBootstrapDns: String = "",
     val autoReconnect: Boolean,
+    val e2eEncryption: Boolean = false,
     val createdAt: Long,
 )

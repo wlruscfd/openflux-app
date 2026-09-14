@@ -30,6 +30,7 @@ class ProfileRepository(
                 dnsUpstream = profile.dnsUpstream,
                 forceBootstrapDns = profile.forceBootstrapDns,
                 autoReconnect = profile.autoReconnect,
+                e2eEncryption = profile.e2eEncryption,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
             ),
         )
@@ -67,6 +68,7 @@ class ProfileRepository(
         dnsUpstream = dnsUpstream,
         forceBootstrapDns = forceBootstrapDns,
         autoReconnect = autoReconnect,
+        e2eEncryption = e2eEncryption,
     )
 }
 
@@ -103,6 +105,9 @@ fun Profile.toStartTunnelConfigJson(
     put("dns_upstream", dnsUpstream)
     if (keyToken.isNotBlank()) {
         put("key_token", keyToken)
+        if (e2eEncryption) {
+            put("e2e_encryption", true)
+        }
     }
     if (forceBootstrapDns.isNotBlank()) {
         put("force_bootstrap_dns", forceBootstrapDns)

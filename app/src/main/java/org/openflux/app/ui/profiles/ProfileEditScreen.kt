@@ -140,6 +140,26 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                         supportingText = { Text(stringResource(R.string.profile_edit_doc_url_key_hint)) },
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     )
+                    if (current.keyToken.isNotBlank()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                stringResource(R.string.profile_edit_e2e_encryption),
+                                modifier = Modifier.weight(1f).padding(end = 12.dp),
+                            )
+                            Switch(
+                                checked = current.e2eEncryption,
+                                onCheckedChange = { profile = current.copy(e2eEncryption = it) },
+                            )
+                        }
+                        Text(
+                            stringResource(R.string.profile_edit_e2e_encryption_hint),
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 ProfileMode.MANUAL -> {

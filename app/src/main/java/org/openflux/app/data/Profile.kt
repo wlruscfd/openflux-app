@@ -53,4 +53,9 @@ data class Profile(
     // which is only ever queried once the tunnel is already up.
     val forceBootstrapDns: String = "",
     val autoReconnect: Boolean = true,
+    // Encrypts tunnel payloads end-to-end using keyToken as the key - off by
+    // default even when keyToken is set, since keyToken is already carried
+    // by every KEY-mode profile for an unrelated reason, and the exit node
+    // this profile talks to may not have been updated to understand it yet.
+    val e2eEncryption: Boolean = false,
 )
