@@ -57,7 +57,11 @@ data class TunnelLogEntry(
     val detail: String = "",
 )
 
+/** One line of the engine's internal debug log - only sent when verbose logging is on. */
+data class RawLogEntry(val id: Long, val timestampMillis: Long, val line: String)
+
 private const val MAX_LOG_ENTRIES = 500
+private const val MAX_RAW_LOG_ENTRIES = 2000
 private val nextLogEntryId = AtomicLong(0)
 
 /**
@@ -97,6 +101,9 @@ class MobileCallback : Callback {
 
     private val _log = MutableStateFlow<List<TunnelLogEntry>>(emptyList())
     val log: StateFlow<List<TunnelLogEntry>> = _log
+
+    private val _rawLog = MutableStateFlow<List<RawLogEntry>>(emptyList())
+    val rawLog: StateFlow<List<RawLogEntry>> = _rawLog
 
     override fun onStatus(status: String) {
         _status.value = when {
@@ -163,6 +170,11 @@ class MobileCallback : Callback {
         appendLog(entry)
     }
 
+    override fun onRawLog(line: String) {
+        val entry = RawLogEntry(nextLogEntryId.getAndIncrement(), System.currentTimeMillis(), line)
+        _rawLog.update { (it + entry).takeLast(MAX_RAW_LOG_ENTRIES) }
+    }
+
     private fun appendLifecycleLog(status: String) {
         val kind = when {
             status == "connecting" -> TunnelLogKind.STARTING
@@ -188,6 +200,7 @@ class MobileCallback : Callback {
 
     fun clearLog() {
         _log.value = emptyList()
+        _rawLog.value = emptyList()
     }
 
     fun reset() {

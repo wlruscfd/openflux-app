@@ -36,6 +36,9 @@ class SettingsRepository(private val context: Context) {
     val defaultDns: Flow<String> =
         context.dataStore.data.map { it[Keys.DEFAULT_DNS] ?: "77.88.8.8" }
 
+    val verboseLogging: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.VERBOSE_LOGGING] ?: false }
+
     val splitTunnelMode: Flow<SplitTunnelMode> =
         context.dataStore.data.map {
             runCatching { SplitTunnelMode.valueOf(it[Keys.SPLIT_TUNNEL_MODE] ?: "") }.getOrDefault(SplitTunnelMode.OFF)
@@ -79,6 +82,10 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.DEFAULT_DNS] = dns }
     }
 
+    suspend fun setVerboseLogging(enabled: Boolean) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.VERBOSE_LOGGING] = enabled }
+    }
+
     suspend fun setSplitTunnelMode(mode: SplitTunnelMode) = withContext(NonCancellable) {
         context.dataStore.edit { it[Keys.SPLIT_TUNNEL_MODE] = mode.name }
     }
@@ -100,6 +107,7 @@ class SettingsRepository(private val context: Context) {
         val START_ON_BOOT = booleanPreferencesKey("start_on_boot")
         val DEFAULT_MTU = intPreferencesKey("default_mtu")
         val DEFAULT_DNS = stringPreferencesKey("default_dns")
+        val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
         val SPLIT_TUNNEL_MODE = stringPreferencesKey("split_tunnel_mode")
         val SPLIT_TUNNEL_APPS = stringSetPreferencesKey("split_tunnel_apps")
         val SPLIT_TUNNEL_SITES_MODE = stringPreferencesKey("split_tunnel_sites_mode")

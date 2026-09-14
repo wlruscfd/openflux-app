@@ -19,13 +19,17 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,12 +38,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import org.openflux.app.R
 import org.openflux.app.vpn.OpenFluxVpnService
+import org.openflux.app.vpn.RawLogEntry
 import org.openflux.app.vpn.TunnelLogEntry
 import org.openflux.app.vpn.TunnelLogKind
 
@@ -53,6 +60,8 @@ import org.openflux.app.vpn.TunnelLogKind
 @Composable
 fun TunnelLogsScreen() {
     val entries by OpenFluxVpnService.callback.log.collectAsState()
+    val rawEntries by OpenFluxVpnService.callback.rawLog.collectAsState()
+    var tab by remember { mutableIntStateOf(0) }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(top = 24.dp, start = 24.dp, end = 24.dp, bottom = 8.dp),
@@ -68,16 +77,44 @@ fun TunnelLogsScreen() {
             }
         }
 
-        if (entries.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.logs_empty))
+        TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.logs_tab_events)) })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.logs_tab_kernel)) })
+        }
+
+        if (tab == 0) {
+            if (entries.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(stringResource(R.string.logs_empty))
+                }
+            } else {
+                LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
+                    items(entries.asReversed(), key = { it.id }) { entry -> LogRow(entry) }
+                }
             }
         } else {
-            LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
-                items(entries.asReversed(), key = { it.id }) { entry -> LogRow(entry) }
+            if (rawEntries.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(stringResource(R.string.logs_kernel_empty))
+                }
+            } else {
+                SelectionContainer {
+                    LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
+                        items(rawEntries.asReversed(), key = { it.id }) { entry -> RawLogRow(entry) }
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun RawLogRow(entry: RawLogEntry) {
+    Text(
+        "${formatTime(entry.timestampMillis)}  ${entry.line}",
+        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+    )
 }
 
 @Composable

@@ -92,6 +92,7 @@ class OpenFluxVpnService : VpnService(), Protector {
 
             val siteSplitMode = app.settingsRepository.splitTunnelSitesMode.first()
             val siteSplitSites = app.settingsRepository.splitTunnelSites.first()
+            val verboseLogging = app.settingsRepository.verboseLogging.first()
 
             val pfd = try {
                 builder.establish()
@@ -114,7 +115,7 @@ class OpenFluxVpnService : VpnService(), Protector {
             try {
                 Mobile.startTunnel(
                     fd.toLong(),
-                    profile.toStartTunnelConfigJson(siteSplitMode, siteSplitSites),
+                    profile.toStartTunnelConfigJson(siteSplitMode, siteSplitSites, verboseLogging),
                     this@OpenFluxVpnService,
                     callback,
                 )

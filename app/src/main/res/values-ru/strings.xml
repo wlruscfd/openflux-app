@@ -23,6 +23,9 @@
 
     <string name="logs_clear">Очистить</string>
     <string name="logs_empty">Логов пока нет. Они появятся при первой попытке подключения.</string>
+    <string name="logs_tab_events">События</string>
+    <string name="logs_tab_kernel">Ядро</string>
+    <string name="logs_kernel_empty">Логов ядра пока нет. Включите подробные логи в настройках и переподключитесь.</string>
     <string name="logs_starting">Запуск туннеля…</string>
     <string name="logs_started">Туннель поднят</string>
     <string name="logs_stopped">Туннель остановлен</string>
@@ -183,6 +186,8 @@
     <string name="settings_start_on_boot">Подключаться при загрузке устройства</string>
     <string name="settings_default_mtu">MTU по умолчанию для новых профилей</string>
     <string name="settings_default_dns">DNS по умолчанию для новых профилей</string>
+    <string name="settings_verbose_logging">Подробные логи</string>
+    <string name="settings_verbose_logging_hint">Показывает сырой внутренний лог ядра на вкладке Логи. Применяется при следующем подключении; может влиять на батарею и производительность.</string>
     <string name="settings_split_tunnel">Раздельное туннелирование</string>
     <string name="settings_site_split_tunnel">Туннелирование по сайтам</string>
     <string name="settings_battery_hint">Оптимизация батареи может замедлять или обрывать фоновое соединение VPN (и незавершённый деплой сервера), пока приложение не на экране. Необязательно — включайте, только если замечали обрывы.</string>

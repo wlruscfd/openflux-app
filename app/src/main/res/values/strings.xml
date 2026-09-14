@@ -23,6 +23,9 @@
 
     <string name="logs_clear">Clear</string>
     <string name="logs_empty">No log entries yet. They\'ll appear on the first connection attempt.</string>
+    <string name="logs_tab_events">Events</string>
+    <string name="logs_tab_kernel">Kernel</string>
+    <string name="logs_kernel_empty">No kernel log yet. Enable verbose logging in Settings and reconnect.</string>
     <string name="logs_starting">Starting tunnel…</string>
     <string name="logs_started">Tunnel is up</string>
     <string name="logs_stopped">Tunnel stopped</string>
@@ -201,6 +204,8 @@
     <string name="settings_start_on_boot">Connect on device boot</string>
     <string name="settings_default_mtu">Default MTU for new profiles</string>
     <string name="settings_default_dns">Default DNS server for new profiles</string>
+    <string name="settings_verbose_logging">Verbose logging</string>
+    <string name="settings_verbose_logging_hint">Shows the engine\'s raw internal log on the Logs tab. Takes effect on the next connect; can affect battery and performance.</string>
     <string name="settings_split_tunnel">Split tunneling</string>
     <string name="settings_site_split_tunnel">Site split tunneling</string>
     <string name="settings_battery_hint">Battery optimization can throttle or kill the VPN\'s background connection (and any in-progress server deploy) once the app isn\'t on screen. Optional - only do this if you\'ve noticed disconnects.</string>

@@ -56,10 +56,12 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     val startOnBoot = repository.startOnBoot
     val defaultMtu = repository.defaultMtu
     val defaultDns = repository.defaultDns
+    val verboseLogging = repository.verboseLogging
 
     fun setStartOnBoot(enabled: Boolean) = viewModelScope.launch { repository.setStartOnBoot(enabled) }
     fun setDefaultMtu(mtu: Int) = viewModelScope.launch { repository.setDefaultMtu(mtu) }
     fun setDefaultDns(dns: String) = viewModelScope.launch { repository.setDefaultDns(dns) }
+    fun setVerboseLogging(enabled: Boolean) = viewModelScope.launch { repository.setVerboseLogging(enabled) }
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -71,6 +73,7 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
     )
 
     val startOnBoot by viewModel.startOnBoot.collectAsState(initial = false)
+    val verboseLogging by viewModel.verboseLogging.collectAsState(initial = false)
 
     // Not collectAsState: binding these fields straight to a DataStore-backed
     // Flow meant every keystroke wrote to disk and then waited for that same
@@ -141,6 +144,23 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
             }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.settings_verbose_logging),
+                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                )
+                Switch(checked = verboseLogging, onCheckedChange = viewModel::setVerboseLogging)
+            }
+            Text(
+                stringResource(R.string.settings_verbose_logging_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 

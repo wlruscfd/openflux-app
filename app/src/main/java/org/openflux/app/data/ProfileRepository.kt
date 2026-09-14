@@ -86,6 +86,7 @@ class ProfileRepository(
 fun Profile.toStartTunnelConfigJson(
     siteSplitMode: SplitTunnelMode = SplitTunnelMode.OFF,
     siteSplitSites: Set<String> = emptySet(),
+    verboseLogging: Boolean = false,
 ): String = JSONObject().apply {
     put("mode", "manual")
     put("transport", transportName(manualTransport))
@@ -105,6 +106,9 @@ fun Profile.toStartTunnelConfigJson(
     }
     if (forceBootstrapDns.isNotBlank()) {
         put("force_bootstrap_dns", forceBootstrapDns)
+    }
+    if (verboseLogging) {
+        put("verbose_logging", true)
     }
     if (siteSplitMode != SplitTunnelMode.OFF && siteSplitSites.isNotEmpty()) {
         // lowercasing the enum's name gives exactly the wire strings the Go
