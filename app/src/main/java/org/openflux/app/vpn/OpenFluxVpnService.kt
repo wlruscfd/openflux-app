@@ -3,12 +3,17 @@ package org.openflux.app.vpn
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.VpnService
 import androidx.core.app.NotificationCompat
 import android.content.pm.PackageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import mobile.Mobile
@@ -17,6 +22,7 @@ import org.openflux.app.MainActivity
 import org.openflux.app.OpenFluxApplication
 import org.openflux.app.R
 import org.openflux.app.data.ManualTransport
+import org.openflux.app.data.Profile
 import org.openflux.app.data.SplitTunnelMode
 import org.openflux.app.data.isReadyToConnect
 import org.openflux.app.data.toStartTunnelConfigJson
@@ -39,13 +45,32 @@ class OpenFluxVpnService : VpnService(), Protector {
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
     private var establishedFd: Int? = null
 
+    // Set right after a successful Mobile.startTunnel, cleared by
+    // disconnect()/onDestroy() - what onRevoke and a network-change callback
+    // need to know whether (and what) to reconnect, since neither carries a
+    // profile id of its own the way an ACTION_CONNECT Intent does.
+    private var connectedProfile: Profile? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var pendingReconnectJob: Job? = null
+
     // gomobile binds Go's `int` to a Java/Kotlin `long` (Go's int width is
     // platform-dependent), so mobile.Protector.protect takes a Long here
     // even though VpnService.protect itself takes an Int.
     override fun protect(fd: Long): Boolean = super.protect(fd.toInt())
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        if (intent == null) {
+            // The system restarted this service after the process died while
+            // it was still running (Android only redelivers a null intent for
+            // START_STICKY, never the original one) - reconnect the profile
+            // that was active, the same way BootReceiver does after a device
+            // reboot, instead of silently doing nothing despite promising
+            // STICKY. Gated on autoReconnect like every other resilience path
+            // here (see connectedProfile's other users below).
+            reconnectAfterProcessRestart()
+            return START_STICKY
+        }
+        when (intent.action) {
             ACTION_DISCONNECT -> {
                 disconnect()
                 return START_NOT_STICKY
@@ -57,6 +82,19 @@ class OpenFluxVpnService : VpnService(), Protector {
             }
         }
         return START_NOT_STICKY
+    }
+
+    private fun reconnectAfterProcessRestart() {
+        serviceScope.launch {
+            val app = application as OpenFluxApplication
+            val profileId = app.settingsRepository.activeProfileId.first()
+            val profile = profileId?.let { app.profileRepository.getById(it) }
+            if (profile != null && profile.autoReconnect) {
+                connect(profile.id)
+            } else {
+                stopSelf()
+            }
+        }
     }
 
     private fun connect(profileId: String) {
@@ -131,8 +169,46 @@ class OpenFluxVpnService : VpnService(), Protector {
                 return@launch
             }
 
+            connectedProfile = profile
+            if (profile.autoReconnect) registerNetworkCallback()
             updateNotification(getString(R.string.vpn_notification_connected, profile.name))
         }
+    }
+
+    /**
+     * Tells the running transport to redial immediately whenever the
+     * system's default network changes (Wi-Fi <-> mobile data, or the same
+     * network dropping and coming back) instead of waiting for a read or
+     * write on the old socket to eventually time out - see
+     * mobile.NetworkChanged's doc comment for why that can take far longer
+     * than reconnecting proactively. Only registered for a profile that
+     * asked for autoReconnect; unregistered in disconnect()/onDestroy().
+     */
+    private fun registerNetworkCallback() {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        // NOT_VPN excludes the tunnel's own virtual network this service just
+        // created - without it, the "default network" this app resolves to
+        // could just be its own always-up VPN interface, which never changes
+        // and defeats the point of watching for the underlying one dropping
+        // out from under it.
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                runCatching { Mobile.networkChanged() }
+            }
+        }
+        runCatching { cm.registerNetworkCallback(request, cb) }
+            .onSuccess { networkCallback = cb }
+    }
+
+    private fun unregisterNetworkCallback() {
+        val cb = networkCallback ?: return
+        networkCallback = null
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        runCatching { cm.unregisterNetworkCallback(cb) }
     }
 
     /**
@@ -160,6 +236,10 @@ class OpenFluxVpnService : VpnService(), Protector {
     }
 
     private fun disconnect() {
+        pendingReconnectJob?.cancel()
+        pendingReconnectJob = null
+        unregisterNetworkCallback()
+        connectedProfile = null
         serviceScope.launch {
             runCatching { Mobile.stopTunnel() }
             establishedFd = null
@@ -169,12 +249,42 @@ class OpenFluxVpnService : VpnService(), Protector {
         }
     }
 
+    /**
+     * Android revoked this app's VPN session - another VPN app took over,
+     * the user (or an MDM policy) turned it off in system Settings, etc.
+     * With autoReconnect on, treat this the same as any other connection
+     * drop this service tries to recover from rather than giving up: the
+     * old TUN fd is gone regardless, so reconnecting means establishing a
+     * fresh one, same as connect() already does. The short delay avoids
+     * hammering `establish()` in a tight loop if something keeps revoking
+     * it right back (another VPN app actively holding the slot).
+     */
     override fun onRevoke() {
-        disconnect()
-        super.onRevoke()
+        val profile = connectedProfile
+        if (profile != null && profile.autoReconnect) {
+            pendingReconnectJob = serviceScope.launch {
+                // Android already tore down the VPN interface by the time
+                // onRevoke runs, but the Go side doesn't know that yet -
+                // StartTunnel refuses a second call while it still thinks
+                // one is running, so the now-defunct session has to be torn
+                // down here first, same as a normal disconnect would.
+                runCatching { Mobile.stopTunnel() }
+                establishedFd = null
+                delay(2000)
+                connect(profile.id)
+            }
+            // Deliberately not calling super.onRevoke(): VpnService's
+            // default implementation calls stopSelf(), which would destroy
+            // this service - and the reconnect attempt just scheduled with
+            // it - before the delay above ever elapses.
+        } else {
+            disconnect()
+            super.onRevoke()
+        }
     }
 
     override fun onDestroy() {
+        unregisterNetworkCallback()
         runCatching { Mobile.stopTunnel() }
         super.onDestroy()
     }
