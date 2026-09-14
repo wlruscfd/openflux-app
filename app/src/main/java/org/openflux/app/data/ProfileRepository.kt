@@ -39,6 +39,7 @@ class ProfileRepository(
                 controlUrl = profile.controlUrl,
                 keyToken = profile.keyToken,
                 docUrl = profile.docUrl,
+                docUrls = profile.docUrls,
                 maxToken = profile.maxToken,
                 maxUid = profile.maxUid,
             ),
@@ -59,6 +60,7 @@ class ProfileRepository(
         keyToken = s.keyToken,
         manualTransport = runCatching { ManualTransport.valueOf(manualTransport) }.getOrDefault(ManualTransport.YANDEX),
         docUrl = s.docUrl,
+        docUrls = s.docUrls,
         maxToken = s.maxToken,
         maxUid = s.maxUid,
         mtu = mtu,
@@ -93,6 +95,8 @@ fun Profile.toStartTunnelConfigJson(
             put("max_token", maxToken)
             put("max_uid", maxUid)
         }
+        ManualTransport.YANDEX_MULTISTREAM ->
+            put("doc_urls", org.json.JSONArray(docUrls.map { it.trim() }.filter { it.isNotEmpty() }))
     }
     put("mtu", mtu)
     put("dns_upstream", dnsUpstream)

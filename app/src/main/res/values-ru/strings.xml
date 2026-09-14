@@ -61,6 +61,9 @@
     <string name="profile_edit_transport_max">MAX</string>
     <string name="profile_edit_max_token">Токен авторизации аккаунта MAX</string>
     <string name="profile_edit_max_uid">ID пользователя для звонка</string>
+    <string name="profile_edit_transport_multistream">Yandex Docs (мультистрим)</string>
+    <string name="profile_edit_doc_urls">Ссылки на документы (по одной на строку)</string>
+    <string name="profile_edit_doc_urls_hint">Минимум 2 независимых ссылки Yandex Docs — для увеличения скорости. На экзит-ноде должен быть тот же список.</string>
     <string name="profile_edit_advanced">Дополнительные настройки</string>
     <string name="profile_edit_mtu">MTU</string>
     <string name="profile_edit_dns">DNS-сервер</string>

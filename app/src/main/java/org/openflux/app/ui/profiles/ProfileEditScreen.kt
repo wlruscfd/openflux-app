@@ -161,6 +161,12 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             label = { Text(stringResource(R.string.profile_edit_transport_max)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.YANDEX_MULTISTREAM,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.YANDEX_MULTISTREAM) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_multistream)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
                     }
                     when (current.manualTransport) {
                         ManualTransport.YANDEX, ManualTransport.VOLGA -> {
@@ -187,6 +193,16 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                                 value = current.maxUid,
                                 onValueChange = { profile = current.copy(maxUid = it) },
                                 label = { Text(stringResource(R.string.profile_edit_max_uid)) },
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            )
+                        }
+                        ManualTransport.YANDEX_MULTISTREAM -> {
+                            OutlinedTextField(
+                                value = current.docUrls.joinToString("\n"),
+                                onValueChange = { profile = current.copy(docUrls = it.split("\n")) },
+                                label = { Text(stringResource(R.string.profile_edit_doc_urls)) },
+                                supportingText = { Text(stringResource(R.string.profile_edit_doc_urls_hint)) },
+                                minLines = 3,
                                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                             )
                         }
