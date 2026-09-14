@@ -52,9 +52,6 @@
     <string name="profile_edit_mode">Способ подключения</string>
     <string name="profile_edit_mode_key">Форк</string>
     <string name="profile_edit_mode_manual">Оригинальный</string>
-    <string name="profile_edit_control_url">URL сервера</string>
-    <string name="profile_edit_control_url_placeholder">https://ваш-сервер.ru</string>
-    <string name="profile_edit_control_url_hint">Только базовый адрес controlplane — без /admin/ и без пути. Тот же хост, что и адрес панели после деплоя.</string>
     <string name="profile_edit_key_token">Ключ доступа</string>
     <string name="profile_edit_doc_url">Ссылка на Yandex Docs</string>
     <string name="profile_edit_doc_url_key_hint">Заполняется автоматически при импорте ссылки; можно вставить и вручную.</string>

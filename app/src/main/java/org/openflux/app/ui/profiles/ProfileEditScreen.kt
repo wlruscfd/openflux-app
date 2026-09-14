@@ -127,22 +127,6 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
 
             when (current.mode) {
                 ProfileMode.KEY -> {
-                    // No live request to a controlplane belongs anywhere in
-                    // this mode, one-off or otherwise - doc_url/transport
-                    // come entirely from data already embedded in an
-                    // imported deep link (see ProfileDeepLink.kt) or typed
-                    // in by hand here, exactly like Fork mode's own
-                    // covert-channel philosophy: everything needed travels
-                    // through the document, never a separate plaintext-
-                    // detectable API call.
-                    OutlinedTextField(
-                        value = current.controlUrl,
-                        onValueChange = { profile = current.copy(controlUrl = it) },
-                        label = { Text(stringResource(R.string.profile_edit_control_url)) },
-                        placeholder = { Text(stringResource(R.string.profile_edit_control_url_placeholder)) },
-                        supportingText = { Text(stringResource(R.string.profile_edit_control_url_hint)) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    )
                     OutlinedTextField(
                         value = current.keyToken,
                         onValueChange = { profile = current.copy(keyToken = it) },

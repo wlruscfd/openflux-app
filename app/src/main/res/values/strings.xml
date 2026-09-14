@@ -66,9 +66,6 @@
     <string name="profile_edit_mode">Connection mode</string>
     <string name="profile_edit_mode_key">Fork</string>
     <string name="profile_edit_mode_manual">Original</string>
-    <string name="profile_edit_control_url">Server URL</string>
-    <string name="profile_edit_control_url_placeholder">https://your-server.example</string>
-    <string name="profile_edit_control_url_hint">The controlplane\'s base address only - no /admin/, no path. Same host as the deploy panel URL.</string>
     <string name="profile_edit_key_token">Access key</string>
     <string name="profile_edit_doc_url">Yandex Docs URL</string>
     <string name="profile_edit_doc_url_key_hint">Filled in automatically when you import a link; you can also paste one here directly.</string>
