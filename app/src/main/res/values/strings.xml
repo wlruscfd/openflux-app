@@ -193,6 +193,10 @@
 
     <string name="deploy_generic_error">Request failed</string>
 
+    <string name="tile_subtitle_connected">Connected</string>
+    <string name="tile_subtitle_connecting">Connecting…</string>
+    <string name="tile_subtitle_disconnected">Tap to connect</string>
+
     <string name="settings_title">Settings</string>
     <string name="settings_start_on_boot">Connect on device boot</string>
     <string name="settings_default_mtu">Default MTU for new profiles</string>

@@ -175,6 +175,10 @@
 
     <string name="deploy_generic_error">Не удалось выполнить запрос</string>
 
+    <string name="tile_subtitle_connected">Подключено</string>
+    <string name="tile_subtitle_connecting">Подключение…</string>
+    <string name="tile_subtitle_disconnected">Нажмите для подключения</string>
+
     <string name="settings_title">Настройки</string>
     <string name="settings_start_on_boot">Подключаться при загрузке устройства</string>
     <string name="settings_default_mtu">MTU по умолчанию для новых профилей</string>

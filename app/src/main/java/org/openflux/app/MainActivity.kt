@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
         }
 
         deepLinkUri = intent?.data
+        handleTileConnectIntent(intent)
 
         setContent {
             CompositionLocalProvider(LocalOpenFluxApp provides application as OpenFluxApplication) {
@@ -68,6 +69,18 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkUri = intent.data
+        handleTileConnectIntent(intent)
+    }
+
+    // The Quick Settings tile (OpenFluxTileService) connects directly by
+    // itself whenever VPN consent is already granted - this path only runs
+    // the very first time, when Android's consent dialog can only be shown
+    // from an Activity, never a TileService. requestConnect below already
+    // knows how to ask for and wait on that consent, so this just forwards
+    // into the exact same flow a manual tap on the home screen uses.
+    private fun handleTileConnectIntent(intent: Intent?) {
+        if (intent?.action != ACTION_CONNECT_FROM_TILE) return
+        intent.getStringExtra(OpenFluxVpnService.EXTRA_PROFILE_ID)?.let(::requestConnect)
     }
 
     private fun requestConnect(profileId: String) {
@@ -93,5 +106,10 @@ class MainActivity : ComponentActivity() {
             action = OpenFluxVpnService.ACTION_DISCONNECT
         }
         startService(intent)
+    }
+
+    companion object {
+        /** See handleTileConnectIntent - OpenFluxTileService's own consent hand-off. */
+        const val ACTION_CONNECT_FROM_TILE = "org.openflux.app.action.CONNECT_FROM_TILE"
     }
 }
