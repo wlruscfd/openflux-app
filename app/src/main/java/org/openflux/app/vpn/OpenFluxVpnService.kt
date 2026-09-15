@@ -195,8 +195,25 @@ class OpenFluxVpnService : VpnService(), Protector {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
+        var lastChangeAt = 0L
         val cb = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
+                // registerNetworkCallback (unlike registerDefaultNetworkCallback,
+                // which can't see past this app's own VPN once it's up - see
+                // the NOT_VPN comment above) reports EVERY matching network,
+                // not just the one actually carrying this device's traffic: a
+                // phone with Wi-Fi and mobile data both active fires this for
+                // each independently, including on cellular radio power-
+                // cycling that never touched the Wi-Fi path this tunnel was
+                // actually using. Debounced so a burst of these forces at
+                // most one reconnect, not one per network - an unthrottled
+                // reconnect storm here was tearing down and rebuilding
+                // multistream's already-open streams far more often than the
+                // real network changes it was meant to recover from,
+                // visible as choppy throughput and connections dying mid-load.
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastChangeAt < NETWORK_CHANGE_DEBOUNCE_MS) return
+                lastChangeAt = now
                 runCatching { Mobile.networkChanged() }
             }
         }
@@ -321,6 +338,7 @@ class OpenFluxVpnService : VpnService(), Protector {
         private const val NOTIFICATION_ID = 1
         private const val VPN_ADDRESS_V4 = "10.111.0.2"
         private const val VPN_ADDRESS_V6 = "fd00:6f70:666c::2"
+        private const val NETWORK_CHANGE_DEBOUNCE_MS = 5000L
 
         /**
          * Shared across the app's lifetime: the UI observes this to render

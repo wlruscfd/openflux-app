@@ -1,5 +1,12 @@
 package org.openflux.app.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -28,9 +36,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +50,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -223,6 +234,16 @@ private fun ProfilePickerSheet(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    // Tapping a different profile used to call onSelect (which sets
+    // activeProfileId AND dismisses the sheet) in the same frame as the
+    // tap, so the checkmark never had a chance to actually animate before
+    // the sheet it was in disappeared. pendingId reflects the tap
+    // immediately (so the row highlights and the checkmark animates in
+    // right away) while the real onSelect - and the dismiss that comes
+    // with it - waits out that animation first.
+    var pendingId by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(),
@@ -239,17 +260,38 @@ private fun ProfilePickerSheet(
             )
 
             profiles.forEach { profile ->
-                val active = profile.id == activeProfileId
+                val active = profile.id == (pendingId ?: activeProfileId)
+                val background by animateColorAsState(
+                    targetValue = if (active) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    } else {
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                    },
+                    label = "profileRowBackground",
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelect(profile.id) }
-                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(background)
+                        .clickable(enabled = pendingId == null) {
+                            if (profile.id == activeProfileId) {
+                                onSelect(profile.id) // already active - nothing to animate, just close
+                                return@clickable
+                            }
+                            pendingId = profile.id
+                            scope.launch {
+                                delay(260)
+                                onSelect(profile.id)
+                            }
+                        }
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (active) {
+                        AnimatedVisibility(visible = active, enter = fadeIn(), exit = fadeOut()) {
                             Text(
                                 text = stringResource(R.string.profiles_active_badge),
                                 style = MaterialTheme.typography.bodySmall,
@@ -257,7 +299,11 @@ private fun ProfilePickerSheet(
                             )
                         }
                     }
-                    if (active) {
+                    AnimatedVisibility(
+                        visible = active,
+                        enter = scaleIn() + fadeIn(),
+                        exit = scaleOut() + fadeOut(),
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = null,
