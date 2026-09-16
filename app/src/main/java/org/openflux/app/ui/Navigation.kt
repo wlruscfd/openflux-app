@@ -64,6 +64,8 @@ private const val SITE_SPLIT_TUNNEL_ROUTE = "site_split_tunnel"
 fun OpenFluxNavHost(
     onConnectRequested: (String) -> Unit,
     onDisconnectRequested: () -> Unit,
+    onSocks5Requested: (String) -> Unit,
+    onSocks5StopRequested: () -> Unit,
     deepLinkUri: Uri? = null,
     onDeepLinkHandled: () -> Unit = {},
 ) {
@@ -133,6 +135,8 @@ fun OpenFluxNavHost(
                 HomeScreen(
                     onConnectRequested = onConnectRequested,
                     onDisconnectRequested = onDisconnectRequested,
+                    onSocks5Requested = onSocks5Requested,
+                    onSocks5StopRequested = onSocks5StopRequested,
                     onManageProfiles = { navController.navigate(Destination.Profiles.route) },
                 )
             }

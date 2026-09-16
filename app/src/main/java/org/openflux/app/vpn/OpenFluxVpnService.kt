@@ -13,6 +13,7 @@ import android.content.pm.PackageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -53,6 +54,12 @@ class OpenFluxVpnService : VpnService(), Protector {
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var pendingReconnectJob: Job? = null
 
+    // The job actually performing connect()'s work (establish() through
+    // Mobile.startTunnel), tracked so a later disconnect() - or a new
+    // connect() call arriving while one is already in flight - can actually
+    // cancel it, instead of racing an untracked anonymous coroutine.
+    private var connectJob: Job? = null
+
     // gomobile binds Go's `int` to a Java/Kotlin `long` (Go's int width is
     // platform-dependent), so mobile.Protector.protect takes a Long here
     // even though VpnService.protect itself takes an Int.
@@ -87,7 +94,12 @@ class OpenFluxVpnService : VpnService(), Protector {
     private fun reconnectAfterProcessRestart() {
         serviceScope.launch {
             val app = application as OpenFluxApplication
-            val profileId = app.settingsRepository.activeProfileId.first()
+            // lastConnectedProfileId (set by connect() on success, cleared by
+            // disconnect()) tracks what was actually tunneling - unlike
+            // activeProfileId, which is just the profile-picker's current
+            // selection and can point somewhere else entirely if the user
+            // browsed profiles without connecting after this one came up.
+            val profileId = app.settingsRepository.lastConnectedProfileId.first()
             val profile = profileId?.let { app.profileRepository.getById(it) }
             if (profile != null && profile.autoReconnect) {
                 connect(profile.id)
@@ -98,10 +110,18 @@ class OpenFluxVpnService : VpnService(), Protector {
     }
 
     private fun connect(profileId: String) {
+        // A new connect() (a fresh ACTION_CONNECT, or onRevoke's delayed
+        // retry finally firing) always supersedes whatever this service was
+        // previously trying to do - cancel it first so the two can't run
+        // Mobile.startTunnel()/establish() concurrently against shared state.
+        pendingReconnectJob?.cancel()
+        pendingReconnectJob = null
+        connectJob?.cancel()
+
         startForeground(NOTIFICATION_ID, buildNotification(getString(R.string.vpn_notification_connecting)))
         callback.reset()
 
-        serviceScope.launch {
+        connectJob = serviceScope.launch {
             val app = application as OpenFluxApplication
             val profile = app.profileRepository.getById(profileId)
             if (profile == null) {
@@ -170,6 +190,7 @@ class OpenFluxVpnService : VpnService(), Protector {
             }
 
             connectedProfile = profile
+            app.settingsRepository.setLastConnectedProfileId(profile.id)
             if (profile.autoReconnect) registerNetworkCallback()
             updateNotification(getString(R.string.vpn_notification_connected, profile.name))
         }
@@ -185,6 +206,14 @@ class OpenFluxVpnService : VpnService(), Protector {
      * asked for autoReconnect; unregistered in disconnect()/onDestroy().
      */
     private fun registerNetworkCallback() {
+        // Unregister any callback already registered first - connect() can
+        // run again (a manual reconnect, or the onRevoke/process-restart
+        // retry paths) while a previous one is still live, and Android never
+        // releases a registration on its own; without this every such cycle
+        // permanently leaked one NetworkCallback (see the class doc on why
+        // that matters beyond the leak itself).
+        unregisterNetworkCallback()
+
         val cm = getSystemService(ConnectivityManager::class.java) ?: return
         // NOT_VPN excludes the tunnel's own virtual network this service just
         // created - without it, the "default network" this app resolves to
@@ -255,9 +284,13 @@ class OpenFluxVpnService : VpnService(), Protector {
     private fun disconnect() {
         pendingReconnectJob?.cancel()
         pendingReconnectJob = null
+        connectJob?.cancel()
+        connectJob = null
         unregisterNetworkCallback()
         connectedProfile = null
+        val app = application as OpenFluxApplication
         serviceScope.launch {
+            app.settingsRepository.setLastConnectedProfileId(null)
             runCatching { Mobile.stopTunnel() }
             establishedFd = null
             callback.onStatus("stopped")
@@ -279,6 +312,20 @@ class OpenFluxVpnService : VpnService(), Protector {
     override fun onRevoke() {
         val profile = connectedProfile
         if (profile != null && profile.autoReconnect) {
+            // Cancel any reconnect already scheduled/running before
+            // scheduling this one - onRevoke can fire again (another VPN
+            // app repeatedly grabbing and releasing the slot) before a
+            // previous pending reconnect has finished, and without this the
+            // two would independently call connect() around the same time.
+            pendingReconnectJob?.cancel()
+            connectJob?.cancel()
+            // The old "stopped" transition disconnect() used to always send
+            // gave the UI a clear signal the tunnel dropped; without any
+            // update here it kept showing "Connected" for the whole gap
+            // below even though traffic isn't flowing. "connecting" is an
+            // existing, already-understood status (see MobileCallback) that
+            // fits this window better than inventing a new one.
+            callback.onStatus("connecting")
             pendingReconnectJob = serviceScope.launch {
                 // Android already tore down the VPN interface by the time
                 // onRevoke runs, but the Go side doesn't know that yet -
@@ -303,6 +350,12 @@ class OpenFluxVpnService : VpnService(), Protector {
     override fun onDestroy() {
         unregisterNetworkCallback()
         runCatching { Mobile.stopTunnel() }
+        // Without this, a coroutine already launched on serviceScope (e.g.
+        // onRevoke's delayed reconnect, still sleeping out its delay(2000))
+        // keeps running after the service is torn down and can still call
+        // connect() -> startForeground()/registerNetworkCallback() against a
+        // destroyed Service instance.
+        serviceScope.cancel()
         super.onDestroy()
     }
 

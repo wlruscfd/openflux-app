@@ -51,8 +51,8 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
 import com.google.zxing.MultiFormatReader
-import com.google.zxing.NotFoundException
 import com.google.zxing.PlanarYUVLuminanceSource
+import com.google.zxing.ReaderException
 import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
 import kotlinx.coroutines.launch
@@ -192,22 +192,23 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
             analysis.setAnalyzer(analysisExecutor) { imageProxy: ImageProxy ->
-                val plane = imageProxy.planes.getOrNull(0)
-                if (plane == null) {
-                    imageProxy.close()
-                    return@setAnalyzer
-                }
-                val luminance = plane.toLuminanceBytes(imageProxy.width, imageProxy.height)
-                val source = PlanarYUVLuminanceSource(
-                    luminance, imageProxy.width, imageProxy.height,
-                    0, 0, imageProxy.width, imageProxy.height, false,
-                )
-                val bitmap = BinaryBitmap(HybridBinarizer(source))
                 try {
-                    val result = reader.decode(bitmap, decodeHints)
-                    onQrTextRef.value(result.text)
-                } catch (e: NotFoundException) {
-                    // No QR code in this frame - expected on most frames.
+                    val plane = imageProxy.planes.getOrNull(0)
+                    if (plane != null) {
+                        val luminance = plane.toLuminanceBytes(imageProxy.width, imageProxy.height)
+                        val source = PlanarYUVLuminanceSource(
+                            luminance, imageProxy.width, imageProxy.height,
+                            0, 0, imageProxy.width, imageProxy.height, false,
+                        )
+                        val bitmap = BinaryBitmap(HybridBinarizer(source))
+                        val result = reader.decode(bitmap, decodeHints)
+                        onQrTextRef.value(result.text)
+                    }
+                } catch (e: ReaderException) {
+                    // No QR code in this frame, or a partial/unreadable one
+                    // (NotFoundException, ChecksumException, FormatException
+                    // all extend this) - expected on most frames while the
+                    // user is still aiming the camera.
                 } finally {
                     imageProxy.close()
                 }
@@ -235,15 +236,33 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
     AndroidView(factory = { previewView }, modifier = modifier)
 }
 
-/** Copies the Y plane into a tightly-packed buffer, stripping row-stride padding. */
+/**
+ * Copies the Y plane into a tightly-packed buffer, stripping row-stride
+ * padding. YUV_420_888 allows a Y-plane pixelStride other than 1 on some
+ * hardware (interleaved-sensor pipelines) - the fast contiguous-copy path
+ * below is only valid when pixelStride is 1 AND there's no row padding;
+ * anything else falls back to a per-pixel copy that honors both strides.
+ */
 private fun ImageProxy.PlaneProxy.toLuminanceBytes(width: Int, height: Int): ByteArray {
-    if (rowStride == width) {
+    if (pixelStride == 1 && rowStride == width) {
         return ByteArray(buffer.remaining()).also { buffer.get(it) }
     }
     val data = ByteArray(width * height)
+    if (pixelStride == 1) {
+        for (row in 0 until height) {
+            buffer.position(row * rowStride)
+            buffer.get(data, row * width, width)
+        }
+        return data
+    }
+    val rowBuf = ByteArray(rowStride)
     for (row in 0 until height) {
         buffer.position(row * rowStride)
-        buffer.get(data, row * width, width)
+        val remaining = buffer.remaining().coerceAtMost(rowStride)
+        buffer.get(rowBuf, 0, remaining)
+        for (col in 0 until width) {
+            data[row * width + col] = rowBuf[col * pixelStride]
+        }
     }
     return data
 }

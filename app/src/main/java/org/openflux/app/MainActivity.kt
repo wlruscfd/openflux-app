@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import org.openflux.app.ui.OpenFluxNavHost
 import org.openflux.app.ui.theme.OpenFluxTheme
+import org.openflux.app.vpn.OpenFluxSocks5Service
 import org.openflux.app.vpn.OpenFluxVpnService
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +58,8 @@ class MainActivity : ComponentActivity() {
                     OpenFluxNavHost(
                         onConnectRequested = ::requestConnect,
                         onDisconnectRequested = ::disconnect,
+                        onSocks5Requested = ::startSocks5Service,
+                        onSocks5StopRequested = ::stopSocks5Service,
                         deepLinkUri = deepLinkUri,
                         onDeepLinkHandled = { deepLinkUri = null },
                     )
@@ -104,6 +107,24 @@ class MainActivity : ComponentActivity() {
     private fun disconnect() {
         val intent = Intent(this, OpenFluxVpnService::class.java).apply {
             action = OpenFluxVpnService.ACTION_DISCONNECT
+        }
+        startService(intent)
+    }
+
+    // Unlike requestConnect, this needs no VpnService.prepare() consent dance
+    // - OpenFluxSocks5Service never touches VpnService at all (see its doc
+    // comment), so there's no system permission to ask for first.
+    private fun startSocks5Service(profileId: String) {
+        val intent = Intent(this, OpenFluxSocks5Service::class.java).apply {
+            action = OpenFluxSocks5Service.ACTION_START
+            putExtra(OpenFluxSocks5Service.EXTRA_PROFILE_ID, profileId)
+        }
+        ContextCompat.startForegroundService(this, intent)
+    }
+
+    private fun stopSocks5Service() {
+        val intent = Intent(this, OpenFluxSocks5Service::class.java).apply {
+            action = OpenFluxSocks5Service.ACTION_STOP
         }
         startService(intent)
     }

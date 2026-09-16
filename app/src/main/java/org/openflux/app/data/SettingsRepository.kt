@@ -27,6 +27,16 @@ class SettingsRepository(private val context: Context) {
     val activeProfileId: Flow<String?> =
         context.dataStore.data.map { it[Keys.ACTIVE_PROFILE_ID] }
 
+    // Distinct from activeProfileId, which is purely a UI-picker selection
+    // (see setActiveProfileId's doc comment) and can point at a profile
+    // that was never actually connected. This is set only by
+    // OpenFluxVpnService right after a successful connect and cleared on
+    // disconnect - the one field that answers "what profile is the tunnel
+    // actually supposed to be running", which is what a process-restart
+    // reconnect needs, not "what's highlighted in the picker right now".
+    val lastConnectedProfileId: Flow<String?> =
+        context.dataStore.data.map { it[Keys.LAST_CONNECTED_PROFILE_ID] }
+
     val startOnBoot: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.START_ON_BOOT] ?: false }
 
@@ -55,6 +65,12 @@ class SettingsRepository(private val context: Context) {
     val splitTunnelSites: Flow<Set<String>> =
         context.dataStore.data.map { it[Keys.SPLIT_TUNNEL_SITES] ?: emptySet() }
 
+    // Listen port for OpenFluxSocks5Service's local proxy (always bound to
+    // 127.0.0.1, never exposed off-device) - configurable since 1080 can
+    // already be taken by something else on the device.
+    val socks5Port: Flow<Int> =
+        context.dataStore.data.map { it[Keys.SOCKS5_PORT] ?: 1080 }
+
     // Every setter below runs inside NonCancellable: all of them are called
     // as viewModelScope.launch { ... } fire-and-forget from a screen's
     // ViewModel, and this app's navigation deliberately clears each tab's
@@ -67,6 +83,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setActiveProfileId(id: String?) = withContext(NonCancellable) {
         context.dataStore.edit {
             if (id == null) it.remove(Keys.ACTIVE_PROFILE_ID) else it[Keys.ACTIVE_PROFILE_ID] = id
+        }
+    }
+
+    suspend fun setLastConnectedProfileId(id: String?) = withContext(NonCancellable) {
+        context.dataStore.edit {
+            if (id == null) it.remove(Keys.LAST_CONNECTED_PROFILE_ID) else it[Keys.LAST_CONNECTED_PROFILE_ID] = id
         }
     }
 
@@ -102,8 +124,13 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.SPLIT_TUNNEL_SITES] = sites }
     }
 
+    suspend fun setSocks5Port(port: Int) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.SOCKS5_PORT] = port }
+    }
+
     private object Keys {
         val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
+        val LAST_CONNECTED_PROFILE_ID = stringPreferencesKey("last_connected_profile_id")
         val START_ON_BOOT = booleanPreferencesKey("start_on_boot")
         val DEFAULT_MTU = intPreferencesKey("default_mtu")
         val DEFAULT_DNS = stringPreferencesKey("default_dns")
@@ -112,5 +139,6 @@ class SettingsRepository(private val context: Context) {
         val SPLIT_TUNNEL_APPS = stringSetPreferencesKey("split_tunnel_apps")
         val SPLIT_TUNNEL_SITES_MODE = stringPreferencesKey("split_tunnel_sites_mode")
         val SPLIT_TUNNEL_SITES = stringSetPreferencesKey("split_tunnel_sites")
+        val SOCKS5_PORT = intPreferencesKey("socks5_port")
     }
 }

@@ -1,5 +1,6 @@
 package org.openflux.app.vpn
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.net.VpnService
@@ -88,6 +89,14 @@ class OpenFluxTileService : TileService() {
         }
     }
 
+    // The deprecated startActivityAndCollapse(Intent) overload below only
+    // runs pre-UPSIDE_DOWN_CAKE (see the SDK_INT branch) - the
+    // UnsupportedOperationException it throws on 34+ is unreachable here,
+    // since 34+ always takes the PendingIntent branch instead. Kotlin's own
+    // @Suppress("DEPRECATION") on the call site silences the compiler
+    // warning but not this specific Android Lint check, hence the separate
+    // @SuppressLint.
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun openApp(profileIdToConnect: String?) {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK

@@ -49,6 +49,22 @@ The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 - IPv6 data path — IPv6 traffic is routed into the tunnel (so it doesn't leak outside it) but is
   then simply dropped rather than relayed.
 
+## Connection modes
+
+The Home screen offers two ways to route traffic through the active profile:
+
+- **VPN (default)** — `OpenFluxVpnService` captures the whole device via Android's `VpnService`,
+  same as before. Needs the system VPN consent prompt once.
+- **Local SOCKS5 proxy** — `OpenFluxSocks5Service` runs a plain TCP CONNECT SOCKS5 proxy (no auth)
+  on `127.0.0.1` (port configurable in Settings, default 1080) through the same transport, with no
+  VpnService/TUN/consent prompt at all - only whatever app you explicitly point at that address is
+  routed through it, everything else on the device keeps its normal route. The counterpart to the
+  desktop client's `--socks5` mode - see [openflux-server](https://github.com/wlruscfd/openflux-server)'s
+  `socks5/` package. A SOCKS5 CONNECT target's hostname is resolved by the device's normal DNS
+  resolver before the connection reaches the tunnel - only the resulting IP traffic is tunneled, not
+  the DNS lookup itself. Mutually exclusive with VPN mode: starting one while the other is active
+  fails outright.
+
 ## Split tunneling
 
 Both kinds are configured globally (Settings) and apply to every profile:

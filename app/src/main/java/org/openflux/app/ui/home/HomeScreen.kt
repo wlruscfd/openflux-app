@@ -30,6 +30,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -61,6 +62,7 @@ import org.openflux.app.R
 import org.openflux.app.data.Profile
 import org.openflux.app.data.ProfileRepository
 import org.openflux.app.data.SettingsRepository
+import org.openflux.app.vpn.OpenFluxSocks5Service
 import org.openflux.app.vpn.OpenFluxVpnService
 import org.openflux.app.vpn.TunnelStatus
 
@@ -94,6 +96,8 @@ class HomeViewModel(
 fun HomeScreen(
     onConnectRequested: (String) -> Unit,
     onDisconnectRequested: () -> Unit,
+    onSocks5Requested: (String) -> Unit,
+    onSocks5StopRequested: () -> Unit,
     onManageProfiles: () -> Unit,
 ) {
     val app = LocalOpenFluxApp.current
@@ -116,6 +120,14 @@ fun HomeScreen(
         status is TunnelStatus.Connecting -> ConnectionButtonState.Connecting
         else -> ConnectionButtonState.Idle
     }
+
+    // Mutually exclusive with VPN mode at the Go layer (see
+    // OpenFluxSocks5Service's doc comment) - the button below is disabled
+    // whenever the other mode is active so a tap can't just surface as a
+    // background error.
+    val socks5Status by OpenFluxSocks5Service.callback.status.collectAsState()
+    val socks5Active = socks5Status is TunnelStatus.Connected || socks5Status is TunnelStatus.Connecting
+    val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 1080)
 
     // Column keeps the profile selector pinned to the very bottom edge
     // (flush against the nav bar) while the VPN control group sits at the
@@ -145,7 +157,7 @@ fun HomeScreen(
                     // state - a doc_url that fails every attempt the same
                     // way) left the notification's own disconnect action as
                     // the only way to back out.
-                    enabled = buttonState != ConnectionButtonState.Idle || activeProfile != null,
+                    enabled = (buttonState != ConnectionButtonState.Idle || activeProfile != null) && !socks5Active,
                     onClick = {
                         if (connected) {
                             onDisconnectRequested()
@@ -163,6 +175,14 @@ fun HomeScreen(
                         TrafficLine(sent = stats.bytesSent, received = stats.bytesReceived)
                     }
                 }
+
+                Socks5Row(
+                    active = socks5Active,
+                    port = socks5Port,
+                    enabled = activeProfile != null && !connected,
+                    onStart = { activeProfile?.let { onSocks5Requested(it.id) } },
+                    onStop = onSocks5StopRequested,
+                )
             }
         }
 
@@ -212,10 +232,12 @@ fun HomeScreen(
                 ProfilePickerSheet(
                     profiles = homeState.profiles,
                     activeProfileId = homeState.activeProfileId,
-                    onSelect = {
-                        sheetOpen = false
-                        viewModel.setActive(it)
-                    },
+                    // Commits the selection only - does NOT close the sheet.
+                    // The sheet calls onDismiss itself once its own
+                    // checkmark animation finishes, via viewModelScope so
+                    // the commit can't be lost even if the sheet is torn
+                    // down before that animation completes.
+                    onSelect = { viewModel.setActive(it) },
                     onDismiss = { sheetOpen = false },
                 )
             }
@@ -277,13 +299,21 @@ private fun ProfilePickerSheet(
                         .background(background)
                         .clickable(enabled = pendingId == null) {
                             if (profile.id == activeProfileId) {
-                                onSelect(profile.id) // already active - nothing to animate, just close
+                                onDismiss() // already active - nothing to animate, just close
                                 return@clickable
                             }
                             pendingId = profile.id
+                            // Commit immediately - onSelect runs on
+                            // viewModelScope (see HomeScreen's call site),
+                            // which outlives this sheet, so the selection
+                            // can't be silently dropped if the sheet is
+                            // dismissed (back button, scrim tap) before the
+                            // animation below finishes. Only the visual
+                            // close waits out the delay.
+                            onSelect(profile.id)
                             scope.launch {
                                 delay(260)
-                                onSelect(profile.id)
+                                onDismiss()
                             }
                         }
                         .padding(horizontal = 12.dp, vertical = 14.dp),
@@ -355,6 +385,43 @@ private fun formatBytes(bytes: Long): String {
         unitIndex++
     }
     return "%.1f %s".format(value, units[unitIndex])
+}
+
+// A secondary, low-emphasis action below the main VPN control - starting a
+// local SOCKS5 proxy instead of the full-device tunnel. Deliberately not
+// styled like the primary ConnectionButton: this is the alternative path,
+// not the default one.
+@Composable
+private fun Socks5Row(
+    active: Boolean,
+    port: Int,
+    enabled: Boolean,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(16.dp))
+        TextButton(
+            onClick = { if (active) onStop() else onStart() },
+            enabled = active || enabled,
+        ) {
+            Text(
+                if (active) {
+                    stringResource(R.string.home_socks5_running, "127.0.0.1:$port")
+                } else {
+                    stringResource(R.string.home_socks5_start)
+                },
+            )
+        }
+        if (active) {
+            Text(
+                text = stringResource(R.string.home_socks5_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 32.dp),
+            )
+        }
+    }
 }
 
 // One quiet status line under the button's "Connected" label - sent and

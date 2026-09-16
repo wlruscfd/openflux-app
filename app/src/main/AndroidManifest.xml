@@ -3,6 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required by ConnectivityManager.registerNetworkCallback
+         (OpenFluxVpnService's network-change-triggered reconnect) - without
+         it that call throws SecurityException at runtime, silently caught by
+         its own runCatching, so the whole feature quietly never worked
+         rather than crashing visibly. Normal-level, granted automatically at
+         install, no runtime request needed. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Only requested when the user picks "scan QR code" in the profiles
          tab (a user-initiated, optional action - see QrScanScreen.kt). -->
@@ -67,6 +74,19 @@
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
+        </service>
+
+        <!-- Local SOCKS5 proxy mode (OpenFluxSocks5Service) - no VpnService,
+             no TUN, no BIND_VPN_SERVICE: this is a plain foreground service
+             that only listens on 127.0.0.1, so it needs none of
+             .vpn.OpenFluxVpnService's special permission/intent-filter. -->
+        <service
+            android:name=".vpn.OpenFluxSocks5Service"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="socks5-proxy" />
         </service>
 
         <!-- Quick Settings tile (Settings > Quick Settings, next to Wi-Fi/

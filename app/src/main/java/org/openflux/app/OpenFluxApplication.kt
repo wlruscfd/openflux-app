@@ -32,6 +32,7 @@ class OpenFluxApplication : Application() {
         deployServerRepository = DeployServerRepository(db.deployServerDao(), DeployServerSecretsStore(this))
 
         createVpnNotificationChannel()
+        createSocks5NotificationChannel()
     }
 
     private fun createVpnNotificationChannel() {
@@ -46,7 +47,24 @@ class OpenFluxApplication : Application() {
         manager.createNotificationChannel(channel)
     }
 
+    // Separate from the VPN channel - OpenFluxSocks5Service's notification
+    // ("SOCKS5 proxy running on 127.0.0.1:1080") would read oddly under a
+    // channel literally named "OpenFlux VPN" when it isn't a VPN connection
+    // at all.
+    private fun createSocks5NotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val manager = getSystemService(NotificationManager::class.java)
+        val channel = NotificationChannel(
+            SOCKS5_NOTIFICATION_CHANNEL_ID,
+            getString(R.string.socks5_notification_channel),
+            NotificationManager.IMPORTANCE_LOW,
+        )
+        manager.createNotificationChannel(channel)
+    }
+
     companion object {
         const val VPN_NOTIFICATION_CHANNEL_ID = "openflux_vpn"
+        const val SOCKS5_NOTIFICATION_CHANNEL_ID = "openflux_socks5"
     }
 }

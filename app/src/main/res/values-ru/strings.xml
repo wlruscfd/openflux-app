@@ -44,10 +44,24 @@
 
     <string name="profiles_title">Профили</string>
     <string name="profiles_add">Добавить профиль</string>
+    <string name="profiles_add_manual">Вручную</string>
+    <string name="profiles_add_clipboard">Из буфера обмена</string>
+    <string name="profiles_add_qr">Сканировать QR-код</string>
+    <string name="profiles_clipboard_added">Профиль добавлен из буфера обмена</string>
+    <string name="profiles_clipboard_invalid">В буфере обмена нет корректной ссылки на профиль</string>
     <string name="profiles_empty">Пока нет профилей. Нажмите +, чтобы добавить.</string>
     <string name="profiles_delete">Удалить</string>
     <string name="profiles_active_badge">Активен</string>
     <string name="home_profile_selector_select">Выберите профиль</string>
+
+    <string name="qr_scan_title">Сканирование QR-кода</string>
+    <string name="qr_scan_back">Назад к профилям</string>
+    <string name="qr_scan_hint">Наведите камеру на QR-код профиля</string>
+    <string name="qr_scan_permission_message">Для сканирования QR-кода профиля нужен доступ к камере.</string>
+    <string name="qr_scan_permission_button">Разрешить доступ</string>
+    <string name="qr_scan_permission_denied">Доступ к камере запрещён — невозможно сканировать QR-коды.</string>
+    <string name="qr_scan_invalid">Это не QR-код профиля</string>
+    <string name="qr_scan_added">Профиль добавлен</string>
 
     <string name="profile_edit_new_title">Новый профиль</string>
     <string name="profile_edit_title">Изменить профиль</string>
@@ -85,6 +99,10 @@
     <string name="profile_share_send">Отправить</string>
     <string name="profile_share_copy">Скопировать ссылку</string>
     <string name="profile_share_copied">Ссылка скопирована</string>
+    <string name="profile_share_menu_title">Поделиться профилем</string>
+    <string name="profile_share_export_clipboard">Экспорт в буфер обмена</string>
+    <string name="profile_share_qr_code">QR-код</string>
+    <string name="profile_share_clipboard_copied">Ссылка скопирована</string>
 
     <string name="deploy_title">Деплой</string>
     <string name="deploy_add_server">Добавить сервер</string>
@@ -188,6 +206,7 @@
     <string name="settings_start_on_boot">Подключаться при загрузке устройства</string>
     <string name="settings_default_mtu">MTU по умолчанию для новых профилей</string>
     <string name="settings_default_dns">DNS по умолчанию для новых профилей</string>
+    <string name="settings_socks5_port">Порт локального SOCKS5-прокси</string>
     <string name="settings_verbose_logging">Подробные логи</string>
     <string name="settings_verbose_logging_hint">Показывает сырой внутренний лог ядра на вкладке Логи. Применяется при следующем подключении; может влиять на батарею и производительность.</string>
     <string name="settings_split_tunnel">Раздельное туннелирование</string>
@@ -218,4 +237,12 @@
     <string name="vpn_notification_connected">Подключено через %1$s</string>
     <string name="vpn_notification_connecting">Подключение…</string>
     <string name="vpn_notification_disconnect_action">Отключить</string>
+
+    <string name="socks5_notification_channel">OpenFlux SOCKS5-прокси</string>
+    <string name="socks5_notification_title">SOCKS5-прокси</string>
+    <string name="socks5_notification_connecting">Запуск…</string>
+    <string name="socks5_notification_running">Слушает на %1$s</string>
+    <string name="home_socks5_start">Запустить локальный SOCKS5-прокси</string>
+    <string name="home_socks5_running">SOCKS5-прокси: %1$s</string>
+    <string name="home_socks5_hint">Укажите этот адрес в настройках прокси нужного приложения — через него пойдёт трафик только этого приложения, в отличие от полного VPN-режима.</string>
 </resources>

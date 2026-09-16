@@ -59,11 +59,13 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     val defaultMtu = repository.defaultMtu
     val defaultDns = repository.defaultDns
     val verboseLogging = repository.verboseLogging
+    val socks5Port = repository.socks5Port
 
     fun setStartOnBoot(enabled: Boolean) = viewModelScope.launch { repository.setStartOnBoot(enabled) }
     fun setDefaultMtu(mtu: Int) = viewModelScope.launch { repository.setDefaultMtu(mtu) }
     fun setDefaultDns(dns: String) = viewModelScope.launch { repository.setDefaultDns(dns) }
     fun setVerboseLogging(enabled: Boolean) = viewModelScope.launch { repository.setVerboseLogging(enabled) }
+    fun setSocks5Port(port: Int) = viewModelScope.launch { repository.setSocks5Port(port) }
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -89,9 +91,11 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
     // side effect, never waiting on themselves to render.
     var mtuText by remember { mutableStateOf<String?>(null) }
     var dnsText by remember { mutableStateOf<String?>(null) }
+    var socks5PortText by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         mtuText = viewModel.defaultMtu.first().toString()
         dnsText = viewModel.defaultDns.first()
+        socks5PortText = viewModel.socks5Port.first().toString()
     }
 
     val context = LocalContext.current
@@ -145,6 +149,18 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
                         viewModel.setDefaultDns(it)
                     },
                     label = { Text(stringResource(R.string.settings_default_dns)) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                )
+            }
+
+            if (socks5PortText != null) {
+                OutlinedTextField(
+                    value = socks5PortText!!,
+                    onValueChange = {
+                        socks5PortText = it
+                        it.toIntOrNull()?.let(viewModel::setSocks5Port)
+                    },
+                    label = { Text(stringResource(R.string.settings_socks5_port)) },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
             }
