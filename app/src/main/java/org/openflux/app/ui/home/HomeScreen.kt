@@ -245,9 +245,6 @@ fun HomeScreen(
     }
 }
 
-// Bottom sheet (slides up from the bottom edge) that lists every profile and
-// lets the user pick the active one. Opened from the compact selector under
-// the connect button.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProfilePickerSheet(

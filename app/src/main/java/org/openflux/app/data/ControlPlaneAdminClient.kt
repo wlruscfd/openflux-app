@@ -62,8 +62,6 @@ data class KeyToken(val token: String, val deepLink: String?)
 class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
     private val baseUrl = baseUrl.trimEnd('/')
 
-    // --- Nodes ---
-
     fun listNodes(): List<AdminNode> = requestArray("GET", "/v1/admin/nodes").map { obj ->
         AdminNode(
             id = obj.getString("ID"),
@@ -83,8 +81,6 @@ class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
 
     fun rotateNodeToken(id: String): String =
         requestObject("POST", "/v1/admin/nodes/$id/rotate-token")!!.getString("token")
-
-    // --- Keys ---
 
     fun listKeys(ownerRef: String? = null): List<AdminKey> {
         val path = if (ownerRef.isNullOrBlank()) "/v1/admin/keys" else "/v1/admin/keys?owner_ref=$ownerRef"
@@ -134,8 +130,6 @@ class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
         requestObject("DELETE", "/v1/admin/keys/$id")
     }
 
-    // --- Ingest tokens ---
-
     fun listIngestTokens(): List<AdminIngestToken> = requestArray("GET", "/v1/admin/ingest-tokens").map { obj ->
         AdminIngestToken(
             id = obj.getString("ID"),
@@ -155,8 +149,6 @@ class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
     fun setIngestTokenEnabled(id: String, enabled: Boolean) {
         requestObject("POST", "/v1/admin/ingest-tokens/$id/${if (enabled) "enable" else "disable"}")
     }
-
-    // --- plumbing ---
 
     private fun requestArray(method: String, path: String): List<JSONObject> {
         val text = requestRaw(method, path, null)
