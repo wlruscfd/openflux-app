@@ -26,13 +26,10 @@ android {
         applicationId = "org.openflux.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.0.2"
+        versionCode = 3
+        versionName = "0.0.3"
 
-        // openflux.aar only ships arm64-v8a/armeabi-v7a anyway (see
-        // build_android_aar.sh); drop x86/x86_64 for every other native lib
-        // too instead of shipping them unused (emulator-only, no real phone
-        // needs them).
+        // x86/x86_64 dropped too - emulator-only, no real phone needs them.
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
