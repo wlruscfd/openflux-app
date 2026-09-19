@@ -22,10 +22,7 @@ class MainActivity : ComponentActivity() {
 
     private var pendingProfileId: String? = null
 
-    // Backs the openflux://import deep link (see ProfileDeepLink). A plain
-    // mutableStateOf is enough here: MainActivity is launchMode="singleTask"
-    // (see the manifest), so onNewIntent - not a fresh onCreate - handles
-    // the link while the app is already running.
+    // MainActivity is launchMode="singleTask", so onNewIntent handles the deep link, not a fresh onCreate.
     private var deepLinkUri by mutableStateOf<Uri?>(null)
 
     private val vpnPermissionLauncher = registerForActivityResult(
@@ -75,12 +72,7 @@ class MainActivity : ComponentActivity() {
         handleTileConnectIntent(intent)
     }
 
-    // The Quick Settings tile (OpenFluxTileService) connects directly by
-    // itself whenever VPN consent is already granted - this path only runs
-    // the very first time, when Android's consent dialog can only be shown
-    // from an Activity, never a TileService. requestConnect below already
-    // knows how to ask for and wait on that consent, so this just forwards
-    // into the exact same flow a manual tap on the home screen uses.
+    // Only needed the first time: Android's VPN consent dialog can't be shown from a TileService.
     private fun handleTileConnectIntent(intent: Intent?) {
         if (intent?.action != ACTION_CONNECT_FROM_TILE) return
         intent.getStringExtra(OpenFluxVpnService.EXTRA_PROFILE_ID)?.let(::requestConnect)
@@ -111,9 +103,7 @@ class MainActivity : ComponentActivity() {
         startService(intent)
     }
 
-    // Unlike requestConnect, this needs no VpnService.prepare() consent dance
-    // - OpenFluxSocks5Service never touches VpnService at all (see its doc
-    // comment), so there's no system permission to ask for first.
+    // No VpnService.prepare() dance needed: OpenFluxSocks5Service never touches VpnService.
     private fun startSocks5Service(profileId: String) {
         val intent = Intent(this, OpenFluxSocks5Service::class.java).apply {
             action = OpenFluxSocks5Service.ACTION_START

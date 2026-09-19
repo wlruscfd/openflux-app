@@ -18,20 +18,7 @@ import org.openflux.app.MainActivity
 import org.openflux.app.OpenFluxApplication
 import org.openflux.app.R
 
-/**
- * The connect/disconnect tile in the system's Quick Settings panel (next to
- * Wi-Fi, Bluetooth, the flashlight, ...). Toggles the app's one active
- * profile - there's no per-tile profile picker, same as the main screen has
- * exactly one "Connect" button for whichever profile is currently active.
- *
- * Disconnecting never needs anything beyond this service -
- * OpenFluxVpnService.ACTION_DISCONNECT is a plain Intent, identical to what
- * the persistent notification's own action sends. Connecting needs a
- * profile to connect with and, only the very first time, the user's VPN
- * consent - Android will only show that consent dialog from an Activity,
- * never a TileService, so that one case hands off to MainActivity instead
- * of trying (and failing) to connect directly from here.
- */
+// Connecting for the first time hands off to MainActivity, since Android only shows the VPN consent dialog from an Activity.
 class OpenFluxTileService : TileService() {
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
@@ -40,9 +27,7 @@ class OpenFluxTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         updateTile(OpenFluxVpnService.callback.status.value)
-        // Keeps the tile in sync with a connect/disconnect triggered from
-        // the app itself or the notification while the Quick Settings panel
-        // happens to be open - not just the state at the moment it opened.
+        // Keeps the tile in sync with a connect/disconnect triggered elsewhere while the panel is open.
         listenJob = scope.launch {
             OpenFluxVpnService.callback.status.collect { updateTile(it) }
         }
@@ -72,8 +57,7 @@ class OpenFluxTileService : TileService() {
             val app = application as OpenFluxApplication
             val profileId = app.settingsRepository.activeProfileId.first()
             if (profileId == null) {
-                // Nothing to connect to - open the app so the user can pick
-                // a profile, same as tapping the empty-state button on Home.
+                // Nothing to connect to - open the app so the user can pick a profile.
                 openApp(profileIdToConnect = null)
                 return@launch
             }
@@ -89,13 +73,7 @@ class OpenFluxTileService : TileService() {
         }
     }
 
-    // The deprecated startActivityAndCollapse(Intent) overload below only
-    // runs pre-UPSIDE_DOWN_CAKE (see the SDK_INT branch) - the
-    // UnsupportedOperationException it throws on 34+ is unreachable here,
-    // since 34+ always takes the PendingIntent branch instead. Kotlin's own
-    // @Suppress("DEPRECATION") on the call site silences the compiler
-    // warning but not this specific Android Lint check, hence the separate
-    // @SuppressLint.
+    // @Suppress("DEPRECATION") on the call site silences the compiler warning but not this Lint check.
     @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun openApp(profileIdToConnect: String?) {
         val intent = Intent(this, MainActivity::class.java).apply {

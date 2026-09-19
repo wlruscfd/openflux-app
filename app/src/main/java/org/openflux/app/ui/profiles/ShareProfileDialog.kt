@@ -22,12 +22,7 @@ import org.openflux.app.data.ProfileDeepLink
 
 private const val QR_SIZE_PX = 640
 
-/**
- * Shows a profile's openflux://import deep link as a QR code (for a nearby
- * device's camera), with a Send action to hand the link to any app. - see
- * ProfileDeepLink.kt for the link format. Works for an unsaved draft too:
- * the link is built purely from the profile's fields, never its id.
- */
+// Works for an unsaved draft too: the link is built purely from the profile's fields, never its id.
 @Composable
 fun ShareProfileDialog(profile: Profile, onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -43,8 +38,7 @@ fun ShareProfileDialog(profile: Profile, onDismiss: () -> Unit) {
                     Image(
                         bitmap = qrBitmap.asImageBitmap(),
                         contentDescription = null,
-                        // Fill the dialog's width while staying square - a
-                        // safe-size QR scans better than a small centred one.
+                        // A large QR scans more reliably than a small centered one.
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f),

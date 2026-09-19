@@ -36,20 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.openflux.app.R
 
-/**
- * The profiles tab's add-profile speed dial (Material 3 "FAB menu"): the
- * same "+" FAB as before, but tapping it expands a short menu of the three
- * ways a profile can be added. The open state is hoisted (expanded +
- * onExpandedChange) so the calling screen can collapse the menu on a
- * tap-anywhere or otherwise react to it.
- *
- * Closed it's a rounded-square "+" button. Tapping it morphs the button into
- * a round close "×" (the plus rotates 45° while the corners round out) and
- * the items cascade into view one by one (nearest to the FAB first). Tapping
- * the FAB again or pressing back folds it back down, top-first. Everything
- * lives in the FAB's own layout slot, so items stay exactly on top of the
- * button - nothing moves when the menu opens.
- */
+// Expanded state is hoisted so the calling screen can collapse the menu on a tap-anywhere or otherwise react to it.
 @Composable
 fun AddProfileFabMenu(
     expanded: Boolean,
@@ -59,9 +46,6 @@ fun AddProfileFabMenu(
     onScanQr: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // "Rounded square + plus" closed; while open the FAB morphs to
-    // "circle + rotated plus (a ×)". The corner radius and rotation drive
-    // off the same open state so the two morphs are in lockstep.
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 45f else 0f,
         animationSpec = tween(140),
@@ -74,11 +58,7 @@ fun AddProfileFabMenu(
     )
     val fabShape = RoundedCornerShape(cornerRadius)
 
-    // Items and the trigger FAB share one right-aligned column, so the whole
-    // stack sits on the FAB's axis. The small FABs get an 8dp right pad each
-    // so their icon is centred exactly under the trigger's icon - they're
-    // 40dp vs the trigger's 56dp, so flush right edges would leave the icons
-    // off-centre.
+    // 8dp right pad on small FABs centers their icon under the trigger's larger 56dp icon.
     Column(modifier = modifier, horizontalAlignment = Alignment.End) {
         FabMenuItem(
             label = stringResource(R.string.profiles_add_manual),
@@ -105,8 +85,7 @@ fun AddProfileFabMenu(
             enterDelayMillis = 0,
             exitDelayMillis = 70,
             onClick = { onExpandedChange(false); onScanQr() },
-            // Wider gap between the menu and the trigger FAB (whose "+" has
-            // turned into the close "×") so they don't crowd one another.
+            // Wider gap so this item doesn't crowd the trigger FAB.
             modifier = Modifier.padding(bottom = 24.dp),
         )
 
@@ -137,8 +116,6 @@ private fun FabMenuItem(
 ) {
     AnimatedVisibility(
         visible = visible,
-        // Entrance cascades bottom-up (nearest to the FAB first); exit folds
-        // top-first back down into the FAB, each item on its own tick.
         enter = expandVertically(
             expandFrom = Alignment.Bottom,
             animationSpec = tween(140, delayMillis = enterDelayMillis),
@@ -148,9 +125,7 @@ private fun FabMenuItem(
             animationSpec = tween(110, delayMillis = exitDelayMillis),
         ) + fadeOut(animationSpec = tween(70, delayMillis = exitDelayMillis)),
     ) {
-        // The whole row is tappable, label and icon alike; the small FAB
-        // keeps its own onClick (tap target) but taps anywhere on the row
-        // (including the label) trigger the action too.
+        // The whole row is tappable, not just the small FAB.
         Row(
             modifier = modifier.clickable(onClick = onClick),
             verticalAlignment = Alignment.CenterVertically,

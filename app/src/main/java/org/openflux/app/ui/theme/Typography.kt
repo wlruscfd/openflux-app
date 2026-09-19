@@ -10,12 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.openflux.app.R
 
-// Inter (SIL OFL 1.1, google/fonts ofl/inter) - one variable file, sampled at
-// a few weights via its wght axis. Bundled instead of using system defaults
-// because the default (Roboto on most devices) is what made every screen
-// look generically "Android" rather than like this app; Inter also has full
-// Cyrillic coverage, which the default Material type scale doesn't guarantee
-// on every device given the app's EN/RU split.
+// Inter (SIL OFL 1.1, google/fonts ofl/inter), bundled since it has full Cyrillic coverage for the app's EN/RU split.
 @OptIn(ExperimentalTextApi::class)
 private fun interWeight(weight: Int) = Font(
     R.font.inter_variable,
@@ -34,12 +29,7 @@ private val SemiBold = FontWeight.SemiBold
 private val Medium = FontWeight.Medium
 private val Regular = FontWeight.Normal
 
-/**
- * Same type scale (sizes/line-heights) as Material3's default Typography -
- * only the family, weight, and tracking change, so nothing reflows. Headlines
- * and titles lean semibold with tighter tracking for a less "default Android"
- * feel; buttons (labelLarge) get the same semibold treatment.
- */
+// Same type scale (sizes/line-heights) as Material3's default Typography; only family, weight, and tracking change.
 val OpenFluxTypography = Typography(
     displayLarge = TextStyle(fontFamily = Inter, fontWeight = SemiBold, fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.5).sp),
     displayMedium = TextStyle(fontFamily = Inter, fontWeight = SemiBold, fontSize = 45.sp, lineHeight = 52.sp, letterSpacing = (-0.25).sp),
@@ -58,9 +48,7 @@ val OpenFluxTypography = Typography(
     bodySmall = TextStyle(fontFamily = Inter, fontWeight = Regular, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.3.sp),
 
     labelLarge = TextStyle(fontFamily = Inter, fontWeight = SemiBold, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
-    // Tighter tracking than the other label styles - this is also the
-    // bottom nav bar's label style, and the default M3 tracking pushed the
-    // longest Russian label ("Настройки") onto two lines in a 5-tab bar.
+    // Tighter tracking: the default M3 tracking pushed the longest Russian nav label onto two lines.
     labelMedium = TextStyle(fontFamily = Inter, fontWeight = Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.1.sp),
     labelSmall = TextStyle(fontFamily = Inter, fontWeight = Medium, fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp),
 )

@@ -20,21 +20,7 @@ import org.openflux.app.data.ManualTransport
 import org.openflux.app.data.isReadyToConnect
 import org.openflux.app.data.toStartTunnelConfigJson
 
-/**
- * Runs a local SOCKS5 proxy (TCP CONNECT only, no auth - see
- * server/socks5/socks5.go) on 127.0.0.1 through the selected profile's
- * transport, as an alternative to [OpenFluxVpnService]'s full-device
- * VpnService tunnel for anything that supports pointing its own proxy
- * settings at a local SOCKS5 address instead. Doesn't touch VpnService at
- * all: no VPN permission prompt, no TUN interface, and - unlike VPN mode -
- * only whatever is explicitly configured to use this proxy is routed
- * through it; everything else on the device keeps its normal route.
- *
- * Mutually exclusive with OpenFluxVpnService: mobile.go refuses to start a
- * tunnel and a SOCKS5 proxy at the same time (see mobile.StartTunnel/
- * StartSocks5Proxy), so starting one while the other is active surfaces as
- * an onStatus("error:...") rather than doing something unexpected.
- */
+// Never touches VpnService; mutually exclusive with OpenFluxVpnService, enforced at the mobile.go layer.
 class OpenFluxSocks5Service : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
@@ -144,12 +130,7 @@ class OpenFluxSocks5Service : Service() {
 
         private const val NOTIFICATION_ID = 2
 
-        /**
-         * Kept separate from [OpenFluxVpnService.callback] - the two are
-         * mutually exclusive but conceptually distinct connections, and
-         * reusing one instance would mean whichever starts last silently
-         * clobbers the other's status history.
-         */
+        // Kept separate from [OpenFluxVpnService.callback] so one starting doesn't clobber the other's status history.
         val callback = MobileCallback()
     }
 }

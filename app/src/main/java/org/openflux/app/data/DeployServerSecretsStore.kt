@@ -4,14 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
-/**
- * Sensitive half of a deploy server: SSH password/private-key/passphrase,
- * plus the admin token and Postgres password the app itself generates for
- * that server's controlplane before every deploy (see DeployServerRepository
- * and deployssh's DeployOptions doc comment for why they're app-generated
- * rather than left for install.sh to invent). A separate encrypted file
- * from SecretsStore's, same Keystore-backed approach.
- */
+// Sensitive half of a deploy server, in its own encrypted file, same Keystore-backed approach as SecretsStore.
 class DeployServerSecretsStore(context: Context) {
 
     private val masterKey = MasterKey.Builder(context)

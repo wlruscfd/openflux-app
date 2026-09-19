@@ -99,10 +99,6 @@ fun ProfileListScreen(
                 onExpandedChange = { fabExpanded = it },
                 onAddManually = onAddProfile,
                 onAddFromClipboard = {
-                    // A profile deep link copied from the admin panel/API is
-                    // the common "add" source - see ProfileDeepLink.kt. If
-                    // the clipboard has one, add it straight away; otherwise
-                    // tell the user instead of silently opening a blank form.
                     val clipboardText = clipboardManager.getText()?.text
                     val profile = clipboardText?.let { ProfileDeepLink.parse(Uri.parse(it)) }
                     if (profile != null) {
@@ -124,10 +120,7 @@ fun ProfileListScreen(
             )
         },
     ) { padding ->
-        // Transparent click-catcher (no visual scrim): while the FAB menu is
-        // open, a tap on any free space collapses it. The FAB and its menu
-        // items live in Scaffold's FAB layer, drawn above this content box,
-        // so they keep receiving their own taps.
+        // Transparent click-catcher: while the FAB menu is open, a tap on any free space collapses it.
         Box(
             modifier = Modifier
                 .fillMaxSize()

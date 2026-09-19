@@ -5,15 +5,7 @@ import android.util.Base64
 import java.nio.charset.StandardCharsets
 import org.json.JSONObject
 
-/**
- * Lets a profile be shared as a link: openflux://import?data=<base64url-json>.
- *
- * The payload deliberately excludes the profile id - importing always
- * produces a fresh draft - and is only ever decoded into the edit screen's
- * in-memory form for the user to review and explicitly save. A deep link
- * can be triggered by any other app or a web page (the intent-filter is
- * BROWSABLE), so nothing here is persisted or connected to automatically.
- */
+// Shares a profile as openflux://import?data=<base64url-json>; the payload excludes the id, so import is a fresh draft.
 object ProfileDeepLink {
     const val SCHEME = "openflux"
     const val HOST = "import"
@@ -38,9 +30,7 @@ object ProfileDeepLink {
             put("key_token", profile.keyToken)
             put("transport", transportName(profile.manualTransport))
             put("doc_url", profile.docUrl)
-            // Only for YANDEX_MULTISTREAM - see Profile.docUrls. Omitted
-            // (rather than an empty array) for every other transport, same
-            // as controlplane's own buildDeepLink.
+            // Omitted (rather than an empty array) for every transport but YANDEX_MULTISTREAM.
             if (profile.docUrls.isNotEmpty()) {
                 put("doc_urls", org.json.JSONArray(profile.docUrls))
             }

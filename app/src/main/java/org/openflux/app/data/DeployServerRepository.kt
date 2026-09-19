@@ -16,11 +16,7 @@ class DeployServerRepository(
     suspend fun getById(id: String): DeployServer? =
         dao.getById(id)?.let { it.toDomain(secrets.load(it.id)) }
 
-    /**
-     * Inserts a new server (empty id) or updates an existing one. The admin
-     * token and DB password are generated once, the first time a server is
-     * saved, and kept stable across later edits/redeploys.
-     */
+    // Admin token and DB password are generated once, on first save, and kept stable across later edits.
     suspend fun save(server: DeployServer): DeployServer {
         val id = server.id.ifBlank { UUID.randomUUID().toString() }
         val existing = if (server.id.isBlank()) null else dao.getById(id)
@@ -116,10 +112,7 @@ private fun randomHex(numBytes: Int): String {
     return bytes.joinToString("") { "%02x".format(it) }
 }
 
-/**
- * Builds the JSON the `mobile` Go package's Deploy expects for its target
- * argument (see mobile/deploy.go's sshTargetJSON - snake_case field names).
- */
+// Builds the JSON the `mobile` Go package's Deploy expects for its target argument (see mobile/deploy.go).
 fun DeployServer.toSshTargetJson(): String = JSONObject().apply {
     put("host", host)
     put("port", port)
@@ -131,10 +124,7 @@ fun DeployServer.toSshTargetJson(): String = JSONObject().apply {
     put("known_host_key_fingerprint", knownHostKeyFingerprint)
 }.toString()
 
-/**
- * Builds the JSON the `mobile` Go package's Deploy expects for its opts
- * argument (see mobile/deploy.go's deployOptionsJSON).
- */
+// Builds the JSON the `mobile` Go package's Deploy expects for its opts argument (see mobile/deploy.go).
 fun DeployServer.toDeployOptionsJson(): String = JSONObject().apply {
     put("deploy_script_url", deployScriptUrl)
     put("repo_url", repoUrl)

@@ -33,14 +33,7 @@ import androidx.compose.ui.unit.dp
 import org.openflux.app.R
 import org.openflux.app.data.AdminKey
 
-// A single LazyColumn for the whole tab (the "new key" form as one item,
-// then the key rows) rather than a form Column followed by its own
-// fillMaxSize() LazyColumn - two fillMaxSize()s stacked in a Column both
-// try to claim the full available height (Column doesn't shrink an
-// unweighted child to "whatever's left"), which pushed real content
-// (including the Create button and the last field) off-screen with no way
-// to scroll back to it. One LazyColumn scrolls everything together, so
-// nothing is ever unreachable regardless of screen size or keyboard state.
+// One LazyColumn for the whole tab: two stacked fillMaxSize() containers both claim full height and hide content.
 @Composable
 fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
     val keys by viewModel.keys.collectAsState()

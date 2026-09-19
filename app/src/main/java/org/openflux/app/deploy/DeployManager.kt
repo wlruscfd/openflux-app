@@ -18,16 +18,7 @@ import org.openflux.app.data.toSshTargetJson
 
 private const val MAX_LOG_LINES_PER_SERVER = 1000
 
-/**
- * Owns all deploy state for the app's lifetime, independent of any
- * ViewModel/screen - the same reason `OpenFluxVpnService.callback` is a
- * singleton rather than ViewModel-scoped: a deploy (especially a
- * multi-server queue) can run for many minutes, and `ui/Navigation.kt`'s
- * bottom-tab switches deliberately clear each tab's back stack (see its
- * comment on why saveState/restoreState were removed), which would
- * otherwise cancel an in-flight deploy the moment the user glanced at
- * another tab.
- */
+// A singleton, not ViewModel-scoped, so switching tabs (which clears back stacks) can't cancel an in-flight deploy.
 object DeployManager {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val runningJobs = mutableMapOf<String, Job>()
@@ -38,12 +29,7 @@ object DeployManager {
     private val _logs = MutableStateFlow<Map<String, List<String>>>(emptyMap())
     val logs: StateFlow<Map<String, List<String>>> = _logs
 
-    // install.sh's log() helper prints each step as "==> <message>" (in
-    // cyan) as it starts one - e.g. "Installing packages (git, postgresql,
-    // nginx, snapd)", "Configuring Nginx", "Requesting a TLS certificate".
-    // Surfacing the latest one gives a short, concrete "what's happening
-    // right now" instead of a static "Deploying..." for however many
-    // minutes the whole thing takes.
+    // Surfaces install.sh's latest "==> <message>" step instead of a static "Deploying..." for the whole run.
     private val _currentStep = MutableStateFlow<Map<String, String>>(emptyMap())
     val currentStep: StateFlow<Map<String, String>> = _currentStep
 
@@ -114,10 +100,7 @@ object DeployManager {
         repository.recordDeployResult(id, finalStatus, fingerprint)
     }
 
-    // Matches install.sh's log() output: `printf '\n\033[1;36m==>\033[0m %s\n'`
-    // - an ANSI cyan-colored "==> <message>" line. ANSI codes survive the
-    // SSH stdout stream verbatim (nothing strips them anywhere upstream),
-    // so they have to be stripped here before matching the arrow.
+    // ANSI codes survive the SSH stdout stream verbatim, so they must be stripped before matching install.sh's "==>".
     private val ansiEscape = Regex("\\[[0-9;]*m")
     private val stepPrefix = Regex("^==>\\s*(.+)$")
 

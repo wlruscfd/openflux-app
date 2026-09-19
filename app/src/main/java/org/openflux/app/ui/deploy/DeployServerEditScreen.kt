@@ -188,13 +188,7 @@ fun DeployServerEditScreen(serverId: String?, onDone: () -> Unit) {
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
-            // install.sh proxies everything through Nginx on 443 (plus a
-            // brief 80 for the Let's Encrypt challenge) in domain/ip mode,
-            // or - in http mode - has controlplane answer directly on 8080
-            // with no proxy/TLS in front of it at all. Either way, the
-            // matching port has to be open in the VPS's own
-            // firewall/cloud security group or nothing here will be
-            // reachable no matter how the deploy itself goes.
+            // The matching port must be open in the VPS's firewall/cloud security group, or nothing is reachable.
             Text(
                 stringResource(
                     if (current.tlsMode == TlsMode.HTTP) {

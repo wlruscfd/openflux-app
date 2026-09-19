@@ -257,13 +257,7 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
                 }
             }
 
-            // Each tab's own content root is a fillMaxSize() LazyColumn - an
-            // unweighted child here would try to claim this outer Column's
-            // full original height (not what's actually left after the
-            // deploy button/summary/message cards/tab row above), the exact
-            // overflow bug DeployKeysTab/DeploySettingsTab's own content
-            // used to have one level down. weight(1f) gives it only what's
-            // really left.
+            // weight(1f) is required here to avoid the same fillMaxSize overflow bug as inside each tab's content.
             Box(modifier = Modifier.weight(1f)) {
                 when (tabIndex) {
                     0 -> DeployLogTab(serverId)

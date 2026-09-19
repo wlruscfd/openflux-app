@@ -14,11 +14,7 @@ import kotlinx.coroutines.withContext
 
 private val Context.dataStore by preferencesDataStore(name = "openflux_settings")
 
-/**
- * OFF: full tunnel, no exclusions (default).
- * EXCLUDE: every app in splitTunnelApps bypasses the VPN; everything else is tunneled.
- * INCLUDE: only the apps in splitTunnelApps are tunneled; everything else bypasses it.
- */
+// EXCLUDE: listed apps bypass the VPN. INCLUDE: only listed apps are tunneled. OFF: full tunnel (default).
 enum class SplitTunnelMode { OFF, EXCLUDE, INCLUDE }
 
 /** App-level (not per-profile) flexible settings. */
@@ -27,13 +23,7 @@ class SettingsRepository(private val context: Context) {
     val activeProfileId: Flow<String?> =
         context.dataStore.data.map { it[Keys.ACTIVE_PROFILE_ID] }
 
-    // Distinct from activeProfileId, which is purely a UI-picker selection
-    // (see setActiveProfileId's doc comment) and can point at a profile
-    // that was never actually connected. This is set only by
-    // OpenFluxVpnService right after a successful connect and cleared on
-    // disconnect - the one field that answers "what profile is the tunnel
-    // actually supposed to be running", which is what a process-restart
-    // reconnect needs, not "what's highlighted in the picker right now".
+    // Distinct from activeProfileId (a UI-picker selection); this tracks what the tunnel is actually running.
     val lastConnectedProfileId: Flow<String?> =
         context.dataStore.data.map { it[Keys.LAST_CONNECTED_PROFILE_ID] }
 
@@ -65,21 +55,11 @@ class SettingsRepository(private val context: Context) {
     val splitTunnelSites: Flow<Set<String>> =
         context.dataStore.data.map { it[Keys.SPLIT_TUNNEL_SITES] ?: emptySet() }
 
-    // Listen port for OpenFluxSocks5Service's local proxy (always bound to
-    // 127.0.0.1, never exposed off-device) - configurable since 1080 can
-    // already be taken by something else on the device.
+    // Configurable since 1080 can already be taken by something else on the device.
     val socks5Port: Flow<Int> =
         context.dataStore.data.map { it[Keys.SOCKS5_PORT] ?: 1080 }
 
-    // Every setter below runs inside NonCancellable: all of them are called
-    // as viewModelScope.launch { ... } fire-and-forget from a screen's
-    // ViewModel, and this app's navigation deliberately clears each tab's
-    // back stack (and every ViewModel on it) on every tab switch - see
-    // Navigation.kt's comment on why saveState/restoreState were removed.
-    // Without this, picking a profile in "Profiles" and immediately
-    // switching to "Home" could cancel the DataStore write mid-flight,
-    // silently discarding the selection - a real, reproducible race, not a
-    // hypothetical one, given how eagerly this app tears screens down.
+    // NonCancellable: a fast tab switch tears down the ViewModel and would otherwise cancel the write mid-flight.
     suspend fun setActiveProfileId(id: String?) = withContext(NonCancellable) {
         context.dataStore.edit {
             if (id == null) it.remove(Keys.ACTIVE_PROFILE_ID) else it[Keys.ACTIVE_PROFILE_ID] = id

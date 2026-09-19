@@ -11,13 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.openflux.app.vpn.OpenFluxVpnService
 
-/**
- * Auto-connects the active profile on boot, gated by Settings > "Connect on
- * device boot". Only fires when the user has already granted VPN permission
- * for this app (VpnService.prepare() returning null) - otherwise there is no
- * way to get consent from a broadcast receiver, so it silently does nothing
- * and the user connects manually once.
- */
+// Only auto-connects if VPN permission was already granted; a broadcast receiver can't prompt for consent.
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return

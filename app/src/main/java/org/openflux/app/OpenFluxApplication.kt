@@ -47,10 +47,7 @@ class OpenFluxApplication : Application() {
         manager.createNotificationChannel(channel)
     }
 
-    // Separate from the VPN channel - OpenFluxSocks5Service's notification
-    // ("SOCKS5 proxy running on 127.0.0.1:1080") would read oddly under a
-    // channel literally named "OpenFlux VPN" when it isn't a VPN connection
-    // at all.
+    // Separate from the VPN channel since a SOCKS5 proxy isn't a VPN connection.
     private fun createSocks5NotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 

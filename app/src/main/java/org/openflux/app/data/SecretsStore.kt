@@ -4,12 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
-/**
- * Holds the sensitive half of a profile (whatever the mode needs: a
- * controlplane key token, a raw Yandex Docs URL, or a MAX token/uid pair),
- * keyed by profile id, in an Android Keystore-backed encrypted file. Never
- * touches Room - see ProfileEntity's doc comment.
- */
+// Holds the sensitive half of a profile, keyed by profile id, in an Android Keystore-backed encrypted file.
 class SecretsStore(context: Context) {
 
     private val masterKey = MasterKey.Builder(context)

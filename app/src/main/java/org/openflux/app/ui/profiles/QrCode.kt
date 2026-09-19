@@ -6,12 +6,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 
-/**
- * Renders content as a black-on-white QR bitmap, or null if it doesn't fit
- * (WriterException - e.g. an unusually long MAX-transport token pushing the
- * payload past what a QR code can hold). zxing's `core` artifact is used
- * for encoding only, no camera/scanning dependency.
- */
+// Returns null if the content doesn't fit within what a QR code can hold (WriterException).
 fun generateQrBitmap(content: String, sizePx: Int): Bitmap? {
     val matrix = try {
         QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, sizePx, sizePx)

@@ -16,15 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Same accent family as the controlplane web admin panel (see
-// server/controlplane/internal/api/web/admin.html) - one brand across the
-// whole product instead of each surface inventing its own palette.
-//
-// Every role Material3 defines is set explicitly here (not just the handful
-// a screen visibly reads) - lightColorScheme()/darkColorScheme() fall back to
-// M3's stock purple baseline for anything left unset, which is how a Card or
-// TextField could end up tinted purple against an otherwise all-blue app
-// without either color ever being written down anywhere.
+// Every role is set explicitly; anything left unset falls back to M3's stock purple baseline.
 private val DarkColors = darkColorScheme(
     primary = Color(0xFF7BA2F5),
     onPrimary = Color(0xFF071224),
@@ -103,13 +95,7 @@ private val LightColors = lightColorScheme(
     inverseOnSurface = Color(0xFFF1F4F9),
 )
 
-/**
- * On Android 12+ (API 31), uses Material You dynamic color, deriving the
- * palette from the device wallpaper via [dynamicLightColorScheme] /
- * [dynamicDarkColorScheme]. On older devices (or explicitly disabled) falls
- * back to the fixed, hand-picked OpenFlux palette below, tuned for contrast
- * in both themes and keeping the controlplane admin panel's blue accent.
- */
+// On Android 12+, uses Material You dynamic color from the device wallpaper; otherwise falls back to the fixed palette.
 @Composable
 fun OpenFluxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -125,10 +111,7 @@ fun OpenFluxTheme(
         else -> LightColors
     }
 
-    // Recolors the system status/nav bars to match instead of leaving them
-    // whatever the pre-Compose window theme set (see values*/themes.xml) -
-    // otherwise a mismatched bar color is the first thing that reads as
-    // "not a real app" on every single screen.
+    // Recolors the system status/nav bars to match, instead of leaving the pre-Compose window theme's color.
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

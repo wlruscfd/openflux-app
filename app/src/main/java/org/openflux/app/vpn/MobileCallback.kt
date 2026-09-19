@@ -15,12 +15,7 @@ sealed interface TunnelStatus {
 
 data class TrafficStats(val bytesSent: Long = 0, val bytesReceived: Long = 0)
 
-/**
- * One line of the Logs tab. Deliberately holds structured data rather than
- * pre-formatted text - [MobileCallback] has no Context to build a localized
- * string with, and formatting belongs in the Composable that renders it
- * anyway (see ui/logs/TunnelLogsScreen.kt).
- */
+// Holds structured data, not pre-formatted text: [MobileCallback] has no Context to build a localized string with.
 enum class TunnelLogKind {
     /** Overall tunnel setup starting (mirrors TunnelStatus.Connecting). */
     STARTING,
@@ -45,9 +40,7 @@ enum class TunnelLogKind {
 }
 
 data class TunnelLogEntry(
-    // Identifies this entry for LazyColumn/remember keys - timestampMillis
-    // itself can collide, since a background reconnect and the lifecycle
-    // callback it triggers can land in the same millisecond.
+    // For LazyColumn/remember keys: timestampMillis alone can collide within the same millisecond.
     val id: Long,
     val timestampMillis: Long,
     val kind: TunnelLogKind,
@@ -64,38 +57,19 @@ private const val MAX_LOG_ENTRIES = 500
 private const val MAX_RAW_LOG_ENTRIES = 2000
 private val nextLogEntryId = AtomicLong(0)
 
-/**
- * Implements the gomobile-bound `mobile.Callback` interface (see
- * mobile/mobile.go) and republishes it as Kotlin StateFlows the UI can
- * collect. Go calls these methods from its own goroutines, so all flows
- * are safe to update from any thread.
- */
+// Republishes the gomobile-bound `mobile.Callback` interface as Kotlin StateFlows, safe to update from any thread.
 class MobileCallback : Callback {
     private val _status = MutableStateFlow<TunnelStatus>(TunnelStatus.Stopped)
     val status: StateFlow<TunnelStatus> = _status
 
-    // OnStatus("connected") only means the local VPN interface came up and
-    // the transport was told to start - it fires immediately, well before
-    // the covert channel (Yandex Docs, ...) has actually finished its own
-    // handshake. Without this, the UI had no way to tell "connected" (VPN
-    // up) apart from "actually relaying traffic yet" - looking done the
-    // moment the tunnel started, even though it could still be several
-    // retries away from working. True once transport.EventConnected fires
-    // (see onLogEvent's "connected" case) and false again on any new
-    // attempt or retry, so a mid-session drop shows as reconnecting too.
+    // OnStatus("connected") only means the VPN interface is up, not that the covert channel has finished its handshake.
     private val _channelReady = MutableStateFlow(false)
     val channelReady: StateFlow<Boolean> = _channelReady
 
     private val _stats = MutableStateFlow(TrafficStats())
     val stats: StateFlow<TrafficStats> = _stats
 
-    // The raw detail text of the most recent retry, so the Home screen can
-    // recognize specific, actionable failures (e.g. a doc_url that needs
-    // Volga instead of Yandex Docs - see HomeScreen.statusLabel) instead of
-    // just showing a generic "connecting" spinner through every retry, no
-    // matter how many times the exact same non-recoverable error repeats.
-    // Cleared once the channel actually connects or the tunnel stops, kept
-    // through every retry in between (that's the whole point).
+    // Kept through every retry so the Home screen can surface a specific, actionable failure - see statusLabel.
     private val _lastRetryDetail = MutableStateFlow<String?>(null)
     val lastRetryDetail: StateFlow<String?> = _lastRetryDetail
 
@@ -123,11 +97,7 @@ class MobileCallback : Callback {
         _stats.value = TrafficStats(bytesSent, bytesReceived)
     }
 
-    /**
-     * Fine-grained connection events from the transport (see
-     * transport.Event* in transport/transport.go) - unlike onStatus, these
-     * keep arriving for every silent background reconnect, not just once.
-     */
+    // Unlike onStatus, these keep arriving for every silent background reconnect, not just once.
     override fun onLogEvent(code: String, detail: String) {
         when (code) {
             "connecting", "retrying" -> _channelReady.value = false
@@ -150,9 +120,7 @@ class MobileCallback : Callback {
                 attempt = detail.toIntOrNull() ?: 0,
             )
             "retrying" -> {
-                // limit=4: the 4th part is the raw underlying error text and
-                // may itself contain "|" - only the first three separators
-                // are ours to split on (see transport.EventRetrying's doc).
+                // limit=4: the 4th part is the raw error text and may itself contain "|".
                 val parts = detail.split("|", limit = 4)
                 _lastRetryDetail.value = parts.getOrNull(3).orEmpty()
                 TunnelLogEntry(
@@ -208,7 +176,6 @@ class MobileCallback : Callback {
         _stats.value = TrafficStats()
         _channelReady.value = false
         _lastRetryDetail.value = null
-        // The log is intentionally not cleared here - right after a failed
-        // attempt is exactly when seeing what just happened matters most.
+        // The log is intentionally not cleared here.
     }
 }

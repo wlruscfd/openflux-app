@@ -23,13 +23,7 @@ import androidx.compose.ui.unit.dp
 import org.openflux.app.R
 import org.openflux.app.data.Profile
 
-/**
- * One profile row, shared by the Home tab's quick picker and the full
- * Profiles list: tapping anywhere on the card selects it as active (a
- * device only ever has one active VPN connection); editing and deleting are
- * separate icon actions so they can't be triggered by accident while just
- * choosing which profile to use.
- */
+// Editing/deleting are separate icon actions so they can't be triggered by accident while just selecting.
 @Composable
 fun ProfileRow(
     profile: Profile,
@@ -53,8 +47,7 @@ fun ProfileRow(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Decorative only - onSelect (the whole card) is the actual
-                // action, so this doesn't need its own click target.
+                // Decorative only - the whole card's onSelect is the actual action.
                 RadioButton(selected = active, onClick = null)
                 Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                     Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis)

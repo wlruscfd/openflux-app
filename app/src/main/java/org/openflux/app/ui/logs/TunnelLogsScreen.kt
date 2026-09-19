@@ -50,13 +50,7 @@ import org.openflux.app.vpn.RawLogEntry
 import org.openflux.app.vpn.TunnelLogEntry
 import org.openflux.app.vpn.TunnelLogKind
 
-/**
- * Shows the tunnel's connection activity: overall start/stop/error plus
- * every individual (re)connection attempt the transport makes in the
- * background - see MobileCallback.onLogEvent, fed by transport.Event* in
- * the Go engine. Newest entry first, since this is meant for "what's
- * happening right now", not a scroll-to-the-bottom transcript.
- */
+// Newest entry first, since this is meant for "what's happening right now", not a scroll-to-the-bottom transcript.
 @Composable
 fun TunnelLogsScreen() {
     val entries by OpenFluxVpnService.callback.log.collectAsState()
@@ -120,8 +114,7 @@ private fun RawLogRow(entry: RawLogEntry) {
 @Composable
 private fun LogRow(entry: TunnelLogEntry) {
     val tone = toneFor(entry.kind)
-    // ERROR already inlines entry.detail into its own logText() line, so
-    // only offer to expand it here when it's otherwise hidden (ATTEMPT_RETRY).
+    // ERROR already inlines entry.detail into its own logText() line, so only offer to expand it otherwise.
     val hasHiddenDetail = entry.detail.isNotBlank() && entry.kind != TunnelLogKind.ERROR
     var expanded by remember(entry.id) { mutableStateOf(false) }
 

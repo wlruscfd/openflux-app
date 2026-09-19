@@ -73,10 +73,7 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
 
     var profile by remember { mutableStateOf<Profile?>(null) }
 
-    // Keyed on profileId + importedProfile so this only (re)loads when the
-    // screen is actually navigated to for a different target, not on every
-    // recomposition - each visit starts from a clean, correctly-sourced
-    // draft rather than whatever the previous visit left behind.
+    // Keyed on profileId + importedProfile so this only reloads on navigation, not every recomposition.
     LaunchedEffect(profileId, importedProfile) {
         when {
             importedProfile != null -> profile = importedProfile
@@ -133,13 +130,37 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                         label = { Text(stringResource(R.string.profile_edit_key_token)) },
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     )
-                    OutlinedTextField(
-                        value = current.docUrl,
-                        onValueChange = { profile = current.copy(docUrl = it) },
-                        label = { Text(stringResource(R.string.profile_edit_doc_url)) },
-                        supportingText = { Text(stringResource(R.string.profile_edit_doc_url_key_hint)) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    )
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 12.dp)) {
+                        FilterChip(
+                            selected = current.manualTransport != ManualTransport.YANDEX_MULTISTREAM,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.YANDEX) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_yandex)) },
+                        )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.YANDEX_MULTISTREAM,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.YANDEX_MULTISTREAM) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_multistream)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    if (current.manualTransport == ManualTransport.YANDEX_MULTISTREAM) {
+                        OutlinedTextField(
+                            value = current.docUrls.joinToString("\n"),
+                            onValueChange = { profile = current.copy(docUrls = it.split("\n")) },
+                            label = { Text(stringResource(R.string.profile_edit_doc_urls)) },
+                            supportingText = { Text(stringResource(R.string.profile_edit_doc_urls_hint)) },
+                            minLines = 3,
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = current.docUrl,
+                            onValueChange = { profile = current.copy(docUrl = it) },
+                            label = { Text(stringResource(R.string.profile_edit_doc_url)) },
+                            supportingText = { Text(stringResource(R.string.profile_edit_doc_url_key_hint)) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        )
+                    }
                     if (current.keyToken.isNotBlank()) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -181,12 +202,6 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             label = { Text(stringResource(R.string.profile_edit_transport_max)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
-                        FilterChip(
-                            selected = current.manualTransport == ManualTransport.YANDEX_MULTISTREAM,
-                            onClick = { profile = current.copy(manualTransport = ManualTransport.YANDEX_MULTISTREAM) },
-                            label = { Text(stringResource(R.string.profile_edit_transport_multistream)) },
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
                     }
                     when (current.manualTransport) {
                         ManualTransport.YANDEX, ManualTransport.VOLGA -> {
@@ -217,6 +232,7 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             )
                         }
                         ManualTransport.YANDEX_MULTISTREAM -> {
+                            // Unreachable from this screen's chips now, but an older/imported profile can still carry it.
                             OutlinedTextField(
                                 value = current.docUrls.joinToString("\n"),
                                 onValueChange = { profile = current.copy(docUrls = it.split("\n")) },

@@ -72,9 +72,6 @@ fun OpenFluxNavHost(
     val navController = rememberNavController()
     val tabs = listOf(Destination.Home, Destination.Logs, Destination.Profiles, Destination.Deploy, Destination.Settings)
 
-    // Set right before navigating to "profile_edit/new" for an imported
-    // link, and cleared as soon as that screen is done with it (saved or
-    // cancelled) - see the profile_edit composable below.
     var importedProfile by remember { mutableStateOf<Profile?>(null) }
 
     LaunchedEffect(deepLinkUri) {
@@ -97,18 +94,7 @@ fun OpenFluxNavHost(
                         selected = selected,
                         onClick = {
                             navController.navigate(tab.route) {
-                                // Deliberately no saveState/restoreState: this
-                                // is a simple tabbed app with no deep per-tab
-                                // history worth preserving, and restoring a
-                                // saved back stack was exactly what caused a
-                                // stale "new profile" draft (or the wrong
-                                // screen) to reappear after leaving it
-                                // mid-edit and coming back. Tapping a tab
-                                // always fully resets to that tab's root.
-                                // Long-running work (a deploy) survives this
-                                // fine regardless, since it lives in
-                                // deploy.DeployManager, not in a screen's
-                                // ViewModel - see its doc comment.
+                                // No saveState/restoreState: it previously let a stale "new profile" draft reappear.
                                 popUpTo(navController.graph.findStartDestination().id)
                                 launchSingleTop = true
                             }
@@ -146,9 +132,6 @@ fun OpenFluxNavHost(
             composable(Destination.Profiles.route) {
                 ProfileListScreen(
                     onAddProfile = {
-                        // Plain "add" from the FAB menu: start a blank
-                        // profile draft, never prefilled from the clipboard
-                        // (that's a separate menu item now).
                         importedProfile = null
                         navController.navigate("$PROFILE_EDIT_ROUTE/new") { launchSingleTop = true }
                     },
@@ -158,11 +141,7 @@ fun OpenFluxNavHost(
             }
             composable(
                 route = QR_SCAN_ROUTE,
-                // The camera preview keeps showing its (black/frozen) surface
-                // for the duration of the default pop animation, so leaving
-                // the scanner leaves a camera-coloured rectangle fading out
-                // behind the profiles list. Pop instantly instead; the scan
-                // screen's onDispose then unbinds CameraX right away.
+                // Pop instantly: the default animation left a frozen camera-colored rectangle fading out.
                 popExitTransition = { fadeOut(animationSpec = tween(0)) },
             ) {
                 QrScanScreen(onDone = { navController.popBackStack() })
@@ -173,10 +152,7 @@ fun OpenFluxNavHost(
                 val rawId = backStackEntry.arguments?.getString(PROFILE_ID_ARG)
                 val isNew = rawId == null || rawId == "new"
 
-                // Clears importedProfile no matter how this screen is left -
-                // the system back gesture/button pops it without going
-                // through onDone, and leaving it set would silently prefill
-                // the *next* "add profile" with this stale imported data.
+                // Clears on any exit path, including system back, to avoid prefilling the next "add profile".
                 androidx.compose.runtime.DisposableEffect(Unit) {
                     onDispose { importedProfile = null }
                 }

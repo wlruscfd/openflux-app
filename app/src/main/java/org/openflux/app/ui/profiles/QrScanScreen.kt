@@ -60,13 +60,7 @@ import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
 import org.openflux.app.data.ProfileDeepLink
 
-/**
- * Full-screen QR scanner for the profiles tab. Decodes an openflux://import
- * deep link (see ProfileDeepLink.kt) and saves the resulting profile
- * immediately - the same payload a shared-link QR code carries. Keeps
- * scanning if the code isn't a valid profile link; shows one "not valid"
- * toast per distinct code, not per camera frame.
- */
+// Keeps scanning if the code isn't a valid profile link; shows one "not valid" toast per distinct code, not per frame.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QrScanScreen(onDone: () -> Unit) {
@@ -161,13 +155,7 @@ fun QrScanScreen(onDone: () -> Unit) {
     }
 }
 
-/**
- * Live camera preview + zxing QR analysis (same library QrCode.kt uses to
- * generate codes - pure JVM, no native lib, unlike ML Kit). Binds to the
- * host LifecycleOwner for the screen's lifetime and unbinds (freeing the
- * camera) on dispose. QR finder patterns are rotation-invariant, so the Y
- * plane is decoded as-is without correcting for sensor rotation.
- */
+// QR finder patterns are rotation-invariant, so the Y plane is decoded as-is without correcting for sensor rotation.
 @Composable
 private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -205,10 +193,7 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
                         onQrTextRef.value(result.text)
                     }
                 } catch (e: ReaderException) {
-                    // No QR code in this frame, or a partial/unreadable one
-                    // (NotFoundException, ChecksumException, FormatException
-                    // all extend this) - expected on most frames while the
-                    // user is still aiming the camera.
+                    // Expected on most frames while the user is still aiming the camera.
                 } finally {
                     imageProxy.close()
                 }
@@ -218,8 +203,7 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
             } catch (e: Exception) {
-                // No back camera (or binding failed) - the scan screen just
-                // shows the black preview; the user can back out.
+                // No back camera, or binding failed - the scan screen just shows the black preview.
             }
         }
         cameraProviderFuture.addListener(bindCamera, ContextCompat.getMainExecutor(context))
@@ -236,13 +220,7 @@ private fun QrCameraPreview(onQrText: (String) -> Unit, modifier: Modifier = Mod
     AndroidView(factory = { previewView }, modifier = modifier)
 }
 
-/**
- * Copies the Y plane into a tightly-packed buffer, stripping row-stride
- * padding. YUV_420_888 allows a Y-plane pixelStride other than 1 on some
- * hardware (interleaved-sensor pipelines) - the fast contiguous-copy path
- * below is only valid when pixelStride is 1 AND there's no row padding;
- * anything else falls back to a per-pixel copy that honors both strides.
- */
+// The fast contiguous-copy path is only valid when pixelStride is 1 and there's no row padding.
 private fun ImageProxy.PlaneProxy.toLuminanceBytes(width: Int, height: Int): ByteArray {
     if (pixelStride == 1 && rowStride == width) {
         return ByteArray(buffer.remaining()).also { buffer.get(it) }

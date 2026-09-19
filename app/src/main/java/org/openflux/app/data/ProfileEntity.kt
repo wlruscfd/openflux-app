@@ -3,11 +3,7 @@ package org.openflux.app.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-/**
- * Non-secret profile fields only. The connection secret (key token, doc
- * URL, or MAX token - whichever the mode uses) lives in [SecretsStore],
- * backed by Android Keystore, never in this plain SQLite row.
- */
+// Non-secret fields only; the connection secret lives in [SecretsStore], never in this plain SQLite row.
 @Entity(tableName = "profiles")
 data class ProfileEntity(
     @PrimaryKey val id: String,

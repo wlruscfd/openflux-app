@@ -72,19 +72,7 @@ class ProfileRepository(
     )
 }
 
-/**
- * Builds the JSON contract the `mobile` Go package's StartTunnel expects
- * (see mobile/mobile.go's Config struct) from this profile.
- *
- * KEY and MANUAL profiles connect identically: control_url/key_token are
- * only ever used for the explicit, user-initiated "check key" action (see
- * ProfileEditScreen) - connecting always uses the already-known doc_url,
- * either typed in directly (MANUAL) or cached from a deep link import or a
- * past "check key" (KEY), so it never depends on a live, unshielded request
- * to the controlplane that a hostile network could block. Callers must not
- * call this for a KEY profile with a blank docUrl - see
- * Profile.isReadyToConnect.
- */
+// Connecting always uses the already-known doc_url, never a live controlplane request a hostile network could block.
 fun Profile.toStartTunnelConfigJson(
     siteSplitMode: SplitTunnelMode = SplitTunnelMode.OFF,
     siteSplitSites: Set<String> = emptySet(),
@@ -116,24 +104,13 @@ fun Profile.toStartTunnelConfigJson(
         put("verbose_logging", true)
     }
     if (siteSplitMode != SplitTunnelMode.OFF && siteSplitSites.isNotEmpty()) {
-        // lowercasing the enum's name gives exactly the wire strings the Go
-        // package's ParseSiteSplitMode expects ("exclude"/"include").
+        // Lowercasing the enum name gives the wire strings ParseSiteSplitMode expects.
         put("site_split_mode", siteSplitMode.name.lowercase())
         put("site_split_sites", org.json.JSONArray(siteSplitSites.toList().sorted()))
     }
 }.toString()
 
-/**
- * False for:
- * - a KEY profile that has never been resolved (no deep-link import, no
- *   successful "check key" yet) - connecting it would need a live
- *   controlplane request this app no longer makes automatically;
- * - either mode with transport YANDEX_MULTISTREAM but fewer than 2 usable
- *   doc_urls entries - mobile.StartTunnel rejects that deep inside the Go
- *   layer ("yandex_multistream requires at least 2 doc_urls"), which is a
- *   worse place to catch a profile nobody finished configuring than here,
- *   before the VPN service even starts.
- */
+// False for an unresolved KEY profile, or YANDEX_MULTISTREAM with fewer than 2 usable doc_urls.
 val Profile.isReadyToConnect: Boolean
     get() {
         if (manualTransport == ManualTransport.YANDEX_MULTISTREAM) {

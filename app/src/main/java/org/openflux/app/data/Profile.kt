@@ -2,9 +2,7 @@ package org.openflux.app.data
 
 enum class ProfileMode { KEY, MANUAL }
 
-// Despite the name, this is set for both profile modes: a KEY-mode profile
-// gets it from an imported deep link (or typed in by hand, same as
-// docUrl) rather than a live controlplane request - see ProfileEditScreen.
+// Despite the name, this is set for both profile modes - see ProfileEditScreen.
 enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM }
 
 /** The wire name mobile.Config and deep links use for a transport - see mobile/mobile.go. */
@@ -22,11 +20,7 @@ fun parseTransportName(name: String): ManualTransport = when (name) {
     else -> ManualTransport.YANDEX
 }
 
-/**
- * A profile as the rest of the app sees it: [ProfileEntity]'s non-secret
- * fields joined with the secret material [SecretsStore] holds for the same
- * id. Never persisted as a single object - see ProfileRepository.
- */
+// [ProfileEntity]'s non-secret fields joined with the secret material [SecretsStore] holds for the same id.
 data class Profile(
     val id: String,
     val name: String,
@@ -35,27 +29,15 @@ data class Profile(
     val keyToken: String = "",
     val manualTransport: ManualTransport = ManualTransport.YANDEX,
     val docUrl: String = "",
-    // YANDEX_MULTISTREAM only: 2+ independent doc URLs, each its own real
-    // connection - see transport.MultiStreamTransport on the Go side for
-    // why this raises the throughput ceiling a single docUrl runs into.
-    // The exit node this pairs with needs the exact same list (any order).
+    // YANDEX_MULTISTREAM only: 2+ independent doc URLs; the exit node needs the exact same list (any order).
     val docUrls: List<String> = emptyList(),
     val maxToken: String = "",
     val maxUid: Long = 0,
     val mtu: Int = 1400,
     val dnsUpstream: String = "77.88.8.8",
-    // Forces the resolver used for the transport's own bootstrap lookups
-    // (docs.yandex.ru and friends) before the tunnel exists to carry
-    // anything else, replacing the two fixed public resolvers that would
-    // otherwise be tried - for a network whose default path to those two
-    // is unreliable but a different, locally-reachable server works fine.
-    // Blank leaves the defaults in place. Unrelated to dnsUpstream above,
-    // which is only ever queried once the tunnel is already up.
+    // Overrides the resolver for the transport's own pre-tunnel bootstrap lookups; blank keeps the defaults.
     val forceBootstrapDns: String = "",
     val autoReconnect: Boolean = true,
-    // Encrypts tunnel payloads end-to-end using keyToken as the key - off by
-    // default even when keyToken is set, since keyToken is already carried
-    // by every KEY-mode profile for an unrelated reason, and the exit node
-    // this profile talks to may not have been updated to understand it yet.
+    // Off by default even when keyToken is set, since the exit node may not understand it yet.
     val e2eEncryption: Boolean = false,
 )

@@ -121,17 +121,11 @@ fun HomeScreen(
         else -> ConnectionButtonState.Idle
     }
 
-    // Mutually exclusive with VPN mode at the Go layer (see
-    // OpenFluxSocks5Service's doc comment) - the button below is disabled
-    // whenever the other mode is active so a tap can't just surface as a
-    // background error.
+    // Mutually exclusive with VPN mode at the Go layer, so the button below is disabled while the other is active.
     val socks5Status by OpenFluxSocks5Service.callback.status.collectAsState()
     val socks5Active = socks5Status is TunnelStatus.Connected || socks5Status is TunnelStatus.Connecting
     val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 1080)
 
-    // Column keeps the profile selector pinned to the very bottom edge
-    // (flush against the nav bar) while the VPN control group sits at the
-    // vertical centre of the remaining space above it.
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -148,15 +142,7 @@ fun HomeScreen(
                 ConnectionButton(
                     state = buttonState,
                     label = statusLabel(status, channelReady, lastRetryDetail),
-                    // Disabled only when there's genuinely nothing this tap
-                    // could do: idle with no profile picked yet. Every other
-                    // state - Connecting, Establishing, Connected - has a
-                    // real action (cancel or disconnect), and onClick below
-                    // already handles all of them via `connected`; disabling
-                    // the button while stuck retrying (a real, reachable
-                    // state - a doc_url that fails every attempt the same
-                    // way) left the notification's own disconnect action as
-                    // the only way to back out.
+                    // Disabled only when idle with no profile picked; every other state has a real cancel/disconnect action.
                     enabled = (buttonState != ConnectionButtonState.Idle || activeProfile != null) && !socks5Active,
                     onClick = {
                         if (connected) {
@@ -186,11 +172,6 @@ fun HomeScreen(
             }
         }
 
-        // Compact profile picker: a single selector that opens a bottom
-        // sheet listing every profile. Picking one makes it the active
-        // profile - the previous always-visible list pushed the button down
-        // and read as a second screen; this stays a one-tap footer. With no
-        // profiles the button doubles as "Add profile".
         var sheetOpen by remember { mutableStateOf(false) }
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -232,11 +213,7 @@ fun HomeScreen(
                 ProfilePickerSheet(
                     profiles = homeState.profiles,
                     activeProfileId = homeState.activeProfileId,
-                    // Commits the selection only - does NOT close the sheet.
-                    // The sheet calls onDismiss itself once its own
-                    // checkmark animation finishes, via viewModelScope so
-                    // the commit can't be lost even if the sheet is torn
-                    // down before that animation completes.
+                    // Commits the selection only; the sheet dismisses itself once its checkmark animation finishes.
                     onSelect = { viewModel.setActive(it) },
                     onDismiss = { sheetOpen = false },
                 )
@@ -253,13 +230,7 @@ private fun ProfilePickerSheet(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // Tapping a different profile used to call onSelect (which sets
-    // activeProfileId AND dismisses the sheet) in the same frame as the
-    // tap, so the checkmark never had a chance to actually animate before
-    // the sheet it was in disappeared. pendingId reflects the tap
-    // immediately (so the row highlights and the checkmark animates in
-    // right away) while the real onSelect - and the dismiss that comes
-    // with it - waits out that animation first.
+    // pendingId reflects the tap immediately so the checkmark can animate before onSelect's dismiss tears the sheet down.
     var pendingId by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -300,13 +271,7 @@ private fun ProfilePickerSheet(
                                 return@clickable
                             }
                             pendingId = profile.id
-                            // Commit immediately - onSelect runs on
-                            // viewModelScope (see HomeScreen's call site),
-                            // which outlives this sheet, so the selection
-                            // can't be silently dropped if the sheet is
-                            // dismissed (back button, scrim tap) before the
-                            // animation below finishes. Only the visual
-                            // close waits out the delay.
+                            // Commit immediately: onSelect runs on viewModelScope, which outlives this sheet.
                             onSelect(profile.id)
                             scope.launch {
                                 delay(260)
@@ -343,26 +308,11 @@ private fun ProfilePickerSheet(
     }
 }
 
-// TunnelStatus.Connected only means the local VPN interface came up and the
-// transport was told to start - not that the covert channel it depends on
-// has actually finished connecting yet (see MobileCallback.channelReady's
-// doc comment). Without checking channelReady too, this said "Подключено"
-// the instant the VPN interface existed, which read as "done" long before
-// traffic could actually flow - including on every silent background
-// reconnect after a drop, not just the first connect.
+// TunnelStatus.Connected only means the VPN interface is up, not that the covert channel has finished connecting.
 @Composable
 private fun statusLabel(status: TunnelStatus, channelReady: Boolean, lastRetryDetail: String?): String = when {
     status is TunnelStatus.Stopped -> stringResource(R.string.home_status_stopped)
-    // A doc_url whose document was created in Yandex's newer editor makes
-    // every single retry fail with the exact same "balancer_url missing"
-    // error forever - no number of retries fixes it, so surfacing that
-    // specific, actionable reason here beats leaving the user staring at a
-    // generic "connecting" spinner that will never resolve on its own (see
-    // server/transport/yandex/yandex.go's fetchDocInfo, which already
-    // rewrote this error message once to point at Volga - this is that same
-    // signal, one layer up). Scoped to the two "still trying" states only,
-    // so a genuine, unrelated TunnelStatus.Error never gets misread as this
-    // just because an earlier retry in the same session happened to be one.
+    // A doc_url created in Yandex's newer editor fails every retry with the same "balancer_url missing" error.
     (status is TunnelStatus.Connecting || (status is TunnelStatus.Connected && !channelReady)) &&
         lastRetryDetail?.contains("balancer_url", ignoreCase = true) == true ->
         stringResource(R.string.home_status_wrong_editor_type)
@@ -384,10 +334,7 @@ private fun formatBytes(bytes: Long): String {
     return "%.1f %s".format(value, units[unitIndex])
 }
 
-// A secondary, low-emphasis action below the main VPN control - starting a
-// local SOCKS5 proxy instead of the full-device tunnel. Deliberately not
-// styled like the primary ConnectionButton: this is the alternative path,
-// not the default one.
+// Deliberately not styled like the primary ConnectionButton: this is the alternative path, not the default one.
 @Composable
 private fun Socks5Row(
     active: Boolean,
@@ -421,9 +368,7 @@ private fun Socks5Row(
     }
 }
 
-// One quiet status line under the button's "Connected" label - sent and
-// received as a single row (up/down arrows), deliberately not a Card so it
-// reads as part of the status text rather than its own surface.
+// Deliberately not a Card, so it reads as part of the status text rather than its own surface.
 @Composable
 private fun TrafficLine(sent: Long, received: Long, modifier: Modifier = Modifier) {
     val arrowTint = MaterialTheme.colorScheme.onSurfaceVariant

@@ -24,9 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "openflux.db",
                 )
-                    // No shipped users yet, so a destructive migration for
-                    // this schema bump (adding deploy_servers) is the
-                    // pragmatic choice rather than writing a real Migration.
+                    // No shipped users yet, so destructive migration is fine instead of a real Migration.
                     .fallbackToDestructiveMigration()
                     .build().also { instance = it }
             }

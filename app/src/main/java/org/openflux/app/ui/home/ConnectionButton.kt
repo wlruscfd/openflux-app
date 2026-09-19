@@ -46,18 +46,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import org.openflux.app.R
 
-/**
- * The home screen's primary toggle, ported from Etonify (yamixdev/Etonify,
- * GPL-3.0) `home_connection_button.dart`: a single round "cookie" button whose
- * silhouette morphs between four shapes (idle circle -> connecting 5-lobe ->
- * connected 8-lobe -> establishing 6-lobe), scaled and haloed by an emphasis
- * factor, with the state label animating in underneath.
- *
- * Deliberately one gesture instead of a separate Connect and Disconnect
- * button: tapping anywhere on the shape toggles the tunnel, and the current
- * [state] is legible from the shape + color alone (blue = off/busy, green =
- * relaying traffic) even before reading the label.
- */
+// Ported from Etonify (yamixdev/Etonify, GPL-3.0) home_connection_button.dart.
 enum class ConnectionButtonState(
     internal val phase: Float,
     internal val emphasis: Float,
@@ -98,10 +87,7 @@ fun ConnectionButton(
         label = "connection-button-emphasis",
     )
 
-    // The cookie silhouette must be rebuilt against the *actual measured*
-    // size of the composable, not a fixed px canvas: hardcoding 148f here
-    // made the clip path a ~50dp circle in the corner on a 3x-density
-    // screen (148.dp == 444px). GenericShape hands us the real size.
+    // Must use the actual measured size, not a fixed px canvas - a hardcoded 148f misplaced the clip path at 3x density.
     val shape = remember(phase) {
         GenericShape { size, _ ->
             addPath(buildCookiePath(size.width, size.height, phase))
@@ -186,12 +172,7 @@ private fun cookieRadii(sides: Int, depth: Float, sharpness: Float): FloatArray 
         (1f - depth * valley).coerceIn(0f, 1f)
     }
 
-/**
- * Rebuilds the silhouette at [phase] (0..3), interpolating between the
- * adjacent pre-computed shapes so a state change reads as the outline
- * unfolding rather than a hard cut. The 96 samples are joined with quadratic
- * segments through their midpoints, which is what keeps the lobes soft.
- */
+// Interpolates between adjacent pre-computed shapes so a state change reads as unfolding, not a hard cut.
 private fun buildCookiePath(width: Float, height: Float, phase: Float): Path {
     val p = phase.coerceIn(0f, 3f)
     val (from, to, t) = when {
@@ -222,12 +203,7 @@ private fun buildCookiePath(width: Float, height: Float, phase: Float): Path {
     return path
 }
 
-/**
- * Soft halo behind the button. Drawn as a radial gradient rather than a
- * blurred silhouette: setShadowLayer on a Path is ignored on hardware layers
- * below API 28, while a gradient brush renders identically all the way down
- * to the app's minSdk of 26.
- */
+// Radial gradient, not a blurred silhouette: setShadowLayer on a Path is ignored on hardware layers below API 28.
 private fun DrawScope.drawGlow(accent: Color, emphasis: Float) {
     val center = Offset(size.width / 2f, size.height / 2f)
     val radius = min(size.width, size.height) / 2f

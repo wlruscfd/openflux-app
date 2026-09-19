@@ -30,18 +30,7 @@ import java.time.format.DateTimeFormatter
 import org.openflux.app.R
 import org.openflux.app.data.AdminIngestToken
 
-/**
- * A deployed server runs exactly one controlplane with exactly one exit
- * node (the one install.sh registers on it) - so unlike the web admin
- * panel, which manages an open-ended fleet of nodes, this tab only ever
- * shows that single node plus the less commonly needed integration
- * (ingest-token) settings, instead of a general nodes list.
- *
- * One LazyColumn for the whole tab (both cards plus the ingest-token rows
- * as one scrollable unit) rather than a form Column followed by its own
- * fillMaxSize() LazyColumn/Box - see DeployKeysTab's comment for why that
- * combination cut content off with no way to scroll back to it.
- */
+// A deployed server always has exactly one exit node, so this shows that single node, not a general nodes list.
 @Composable
 fun DeploySettingsTab(viewModel: DeployServerDetailViewModel) {
     val server by viewModel.server.collectAsState()

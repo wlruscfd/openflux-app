@@ -69,8 +69,7 @@ class SiteSplitTunnelViewModel(private val repository: SettingsRepository) : Vie
     }
 }
 
-// domainLabelRe allows only plain hostnames/TLDs (letters, digits, dots,
-// hyphens, underscores), rejecting scheme/path/port junk up front.
+// Allows only plain hostnames/TLDs, rejecting scheme/path/port junk up front.
 private val domainLabelRe = Regex("^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$")
 
 private val ipv4LabelRe = Regex("^\\d{1,3}(\\.\\d{1,3}){3}$")
@@ -84,15 +83,13 @@ private fun isIpAddress(s: String): Boolean {
 /** Normalizes a raw user-typed site into a bare domain or IP, or null if invalid. */
 internal fun normalizeSite(raw: String): String? {
     var s = raw.trim().lowercase()
-    // Strip an optional scheme and anything after a slash - lets people paste
-    // "https://www.example.com/path" and still get "www.example.com".
+    // Strip an optional scheme and anything after a slash, e.g. "https://www.example.com/path" -> "www.example.com".
     val scheme = s.indexOf("://")
     if (scheme >= 0) s = s.substring(scheme + 3)
     val slash = s.indexOf('/')
     if (slash >= 0) s = s.substring(0, slash)
     if (isIpAddress(s)) return s
-    // ".ru" and "*.ru" are the same "every .ru" rule - both leave a bare TLD
-    // behind after stripping, so the dot check below must be skipped for them.
+    // ".ru" and "*.ru" both mean "every .ru", so the dot check below must be skipped for them.
     val wildcard = s.startsWith("*.") || s.startsWith(".")
     s = s.removePrefix("www.")
     s = s.removePrefix("*.")

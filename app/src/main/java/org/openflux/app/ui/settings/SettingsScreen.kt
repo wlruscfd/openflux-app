@@ -79,16 +79,7 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
     val startOnBoot by viewModel.startOnBoot.collectAsState(initial = false)
     val verboseLogging by viewModel.verboseLogging.collectAsState(initial = false)
 
-    // Not collectAsState: binding these fields straight to a DataStore-backed
-    // Flow meant every keystroke wrote to disk and then waited for that same
-    // write to echo back through the Flow before the field showed anything
-    // new - on a slower device (or just typing fast, which a 12-13 character
-    // IP address invites) that round trip lagging behind a keystroke or two
-    // is what made typing here feel like it was eating or reordering
-    // characters. Loaded once instead (nulls until then, so the fields below
-    // don't render with a placeholder default and then jump once the real
-    // value arrives); edits update local state immediately and persist as a
-    // side effect, never waiting on themselves to render.
+    // Not collectAsState: round-tripping every keystroke through the DataStore Flow made typing feel laggy.
     var mtuText by remember { mutableStateOf<String?>(null) }
     var dnsText by remember { mutableStateOf<String?>(null) }
     var socks5PortText by remember { mutableStateOf<String?>(null) }
@@ -100,11 +91,7 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
 
     val context = LocalContext.current
     var batteryUnrestricted by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
-    // The system settings screen this button opens runs outside our own
-    // activity - there's no callback for "the user came back and changed
-    // it", only re-checking once they do. ON_RESUME (not a one-shot
-    // LaunchedEffect) is what actually fires for that, since this screen
-    // never leaves composition while the user is away in system settings.
+    // No callback exists for "returned from system settings", so re-check on ON_RESUME instead.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -197,12 +184,7 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
-            // Entirely optional, user-initiated - never requested
-            // automatically. Battery optimization can throttle or kill the
-            // VPN's background network activity (and any in-progress SSH
-            // deploy) once the app isn't in the foreground; this just gives
-            // whoever wants that fixed a one-tap way to ask the system for
-            // it, without forcing the decision on anyone who doesn't.
+            // Entirely optional, user-initiated: never requested automatically.
             if (!batteryUnrestricted) {
                 Text(
                     stringResource(R.string.settings_battery_hint),

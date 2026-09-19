@@ -23,12 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import org.openflux.app.R
 
-/**
- * The centered "share" context menu, opened from the share button on a
- * profile row. Two ways to hand a profile to another device: copy its
- * openflux://import deep link (see ProfileDeepLink.kt) to the clipboard, or
- * show it as a QR code (see ShareProfileDialog.kt) for a nearby camera.
- */
+// Two ways to hand a profile to another device: copy its deep link, or show it as a QR code.
 @Composable
 fun ProfileShareMenuDialog(
     onExportClipboard: () -> Unit,

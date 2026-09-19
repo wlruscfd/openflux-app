@@ -186,13 +186,7 @@ private fun DeployServerRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            // A full text OutlinedButton here (Material3's default content
-            // padding is generous, meant for a button standing on its own)
-            // ate so much of the row's width that the name/status Column
-            // above - already weight(1f) and ellipsized - had almost
-            // nothing left to work with. A plain icon button, same as
-            // DeployKeysTab/DeploySettingsTab's row actions, takes a fixed,
-            // small footprint instead.
+            // A plain icon button, not a full text button, so the name/status Column keeps most of the row's width.
             if (status == DeployStatus.RUNNING) {
                 CircularProgressIndicator(modifier = Modifier.padding(horizontal = 8.dp))
             } else {

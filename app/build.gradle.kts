@@ -51,7 +51,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // openflux.aar (the gomobile-bound Go engine) ships its own
+            // consumer proguard rules keeping the go.**/mobile.** JNI
+            // bridge classes (Callback, Config, Seq, ...) - R8 respects
+            // those automatically, so enabling this doesn't need duplicate
+            // rules here for that part. Room and Compose ship the same kind
+            // of consumer rules for their own generated/internal classes.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
