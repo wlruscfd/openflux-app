@@ -26,8 +26,8 @@ android {
         applicationId = "org.openflux.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.0.3"
+        versionCode = 5
+        versionName = "0.0.5"
 
         // x86/x86_64 dropped too - emulator-only, no real phone needs them.
         ndk {
