@@ -76,10 +76,7 @@ class MobileCallback : Callback {
     private val _lastRetryDetail = MutableStateFlow<String?>(null)
     val lastRetryDetail: StateFlow<String?> = _lastRetryDetail
 
-    // Non-null while a CAPTCHA is blocking the connection; holds the doc_url to load in a WebView.
-    // The engine can't solve this itself (fetchDocInfo is headless) - only a real browser session,
-    // solved by the user, unblocks it. Cleared once the tunnel reaches "connected" or the user
-    // dismisses the prompt without solving it.
+    // Non-null while a CAPTCHA is blocking the connection - the doc_url to load in a WebView.
     private val _captchaDocUrl = MutableStateFlow<String?>(null)
     val captchaDocUrl: StateFlow<String?> = _captchaDocUrl
 

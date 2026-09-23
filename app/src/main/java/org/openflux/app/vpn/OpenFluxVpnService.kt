@@ -196,11 +196,7 @@ class OpenFluxVpnService : VpnService(), Protector {
     private suspend fun applySplitTunneling(app: OpenFluxApplication, builder: Builder) {
         val mode = app.settingsRepository.splitTunnelMode.first()
 
-        // Without this, VpnService captures this app's own non-protected sockets too - including
-        // CaptchaWebViewDialog's WebView, which needs real internet access to show a CAPTCHA that
-        // is, by definition, blocking the tunnel it would otherwise be routed through. INCLUDE
-        // mode already excludes everything not explicitly allow-listed (and can't be combined with
-        // addDisallowedApplication on the same Builder), so this only applies to OFF/EXCLUDE.
+        // Otherwise VpnService also routes this app's own WebView into the tunnel it needs to bypass.
         if (mode != SplitTunnelMode.INCLUDE) {
             try {
                 builder.addDisallowedApplication(packageName)
