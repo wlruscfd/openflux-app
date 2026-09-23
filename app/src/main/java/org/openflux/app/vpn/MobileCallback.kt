@@ -37,6 +37,9 @@ enum class TunnelLogKind {
 
     /** An attempt failed and another is queued after delaySeconds. */
     ATTEMPT_RETRY,
+
+    /** Yandex served a CAPTCHA instead of the doc - detail carries the doc_url to solve it at. */
+    CAPTCHA_REQUIRED,
 }
 
 data class TunnelLogEntry(
@@ -73,6 +76,17 @@ class MobileCallback : Callback {
     private val _lastRetryDetail = MutableStateFlow<String?>(null)
     val lastRetryDetail: StateFlow<String?> = _lastRetryDetail
 
+    // Non-null while a CAPTCHA is blocking the connection; holds the doc_url to load in a WebView.
+    // The engine can't solve this itself (fetchDocInfo is headless) - only a real browser session,
+    // solved by the user, unblocks it. Cleared once the tunnel reaches "connected" or the user
+    // dismisses the prompt without solving it.
+    private val _captchaDocUrl = MutableStateFlow<String?>(null)
+    val captchaDocUrl: StateFlow<String?> = _captchaDocUrl
+
+    fun dismissCaptchaPrompt() {
+        _captchaDocUrl.value = null
+    }
+
     private val _log = MutableStateFlow<List<TunnelLogEntry>>(emptyList())
     val log: StateFlow<List<TunnelLogEntry>> = _log
 
@@ -89,6 +103,7 @@ class MobileCallback : Callback {
         }
         if (status == "stopped" || status.startsWith("error:")) {
             _channelReady.value = false
+            _captchaDocUrl.value = null
         }
         appendLifecycleLog(status)
     }
@@ -104,7 +119,9 @@ class MobileCallback : Callback {
             "connected" -> {
                 _channelReady.value = true
                 _lastRetryDetail.value = null
+                _captchaDocUrl.value = null
             }
+            "captcha_required" -> _captchaDocUrl.value = detail
         }
         val entry = when (code) {
             "connecting" -> TunnelLogEntry(
@@ -118,6 +135,12 @@ class MobileCallback : Callback {
                 timestampMillis = System.currentTimeMillis(),
                 kind = TunnelLogKind.ATTEMPT_CONNECTED,
                 attempt = detail.toIntOrNull() ?: 0,
+            )
+            "captcha_required" -> TunnelLogEntry(
+                id = nextLogEntryId.getAndIncrement(),
+                timestampMillis = System.currentTimeMillis(),
+                kind = TunnelLogKind.CAPTCHA_REQUIRED,
+                detail = detail,
             )
             "retrying" -> {
                 // limit=4: the 4th part is the raw error text and may itself contain "|".
@@ -176,6 +199,7 @@ class MobileCallback : Callback {
         _stats.value = TrafficStats()
         _channelReady.value = false
         _lastRetryDetail.value = null
+        _captchaDocUrl.value = null
         // The log is intentionally not cleared here.
     }
 }

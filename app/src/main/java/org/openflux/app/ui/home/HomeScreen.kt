@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import mobile.Mobile
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
 import org.openflux.app.data.Profile
@@ -125,6 +126,11 @@ fun HomeScreen(
     val socks5Status by OpenFluxSocks5Service.callback.status.collectAsState()
     val socks5Active = socks5Status is TunnelStatus.Connected || socks5Status is TunnelStatus.Connecting
     val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 1080)
+
+    // Only one of these is ever non-null at a time in practice - VPN and SOCKS5 modes are mutually exclusive - but reading both keeps this screen agnostic to which one is active.
+    val vpnCaptchaUrl by OpenFluxVpnService.callback.captchaDocUrl.collectAsState()
+    val socks5CaptchaUrl by OpenFluxSocks5Service.callback.captchaDocUrl.collectAsState()
+    val captchaUrl = vpnCaptchaUrl ?: socks5CaptchaUrl
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -218,6 +224,21 @@ fun HomeScreen(
                     onDismiss = { sheetOpen = false },
                 )
             }
+        }
+
+        if (captchaUrl != null) {
+            CaptchaWebViewDialog(
+                docUrl = captchaUrl,
+                onDismiss = {
+                    OpenFluxVpnService.callback.dismissCaptchaPrompt()
+                    OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
+                },
+                onSolved = { cookies ->
+                    runCatching { Mobile.provideCaptchaCookies(cookies) }
+                    OpenFluxVpnService.callback.dismissCaptchaPrompt()
+                    OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
+                },
+            )
         }
     }
 }

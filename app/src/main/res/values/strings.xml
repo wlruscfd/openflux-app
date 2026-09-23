@@ -33,6 +33,7 @@
     <string name="logs_attempt_connecting">Connection attempt #%1$d…</string>
     <string name="logs_attempt_connected">Connected (attempt #%1$d)</string>
     <string name="logs_attempt_retry">Attempt #%1$d failed (%2$s). Retrying in %3$ds.</string>
+    <string name="logs_captcha_required">Yandex asked for a CAPTCHA - solve it in the prompt to continue.</string>
     <string name="logs_reason_fetch_failed">couldn\'t fetch the document</string>
     <string name="logs_reason_dial_failed">couldn\'t open the connection</string>
     <string name="logs_reason_handshake_failed">the server didn\'t confirm the connection</string>
@@ -245,4 +246,6 @@
     <string name="home_socks5_start">Start local SOCKS5 proxy</string>
     <string name="home_socks5_running">SOCKS5 proxy: %1$s</string>
     <string name="home_socks5_hint">Point an app\'s proxy settings at this address - only that app\'s traffic goes through it, unlike full VPN mode.</string>
+    <string name="captcha_dialog_title">Solve the check to continue</string>
+    <string name="captcha_dialog_continue">Continue</string>
 </resources>

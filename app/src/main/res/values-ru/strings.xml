@@ -33,6 +33,7 @@
     <string name="logs_attempt_connecting">Попытка подключения №%1$d…</string>
     <string name="logs_attempt_connected">Подключено (попытка №%1$d)</string>
     <string name="logs_attempt_retry">Попытка №%1$d не удалась (%2$s). Повтор через %3$d с.</string>
+    <string name="logs_captcha_required">Яндекс запросил капчу — решите её во всплывающем окне, чтобы продолжить.</string>
     <string name="logs_reason_fetch_failed">не удалось получить данные документа</string>
     <string name="logs_reason_dial_failed">не удалось установить соединение</string>
     <string name="logs_reason_handshake_failed">сервер не подтвердил подключение</string>
@@ -245,4 +246,6 @@
     <string name="home_socks5_start">Запустить локальный SOCKS5-прокси</string>
     <string name="home_socks5_running">SOCKS5-прокси: %1$s</string>
     <string name="home_socks5_hint">Укажите этот адрес в настройках прокси нужного приложения — через него пойдёт трафик только этого приложения, в отличие от полного VPN-режима.</string>
+    <string name="captcha_dialog_title">Решите проверку, чтобы продолжить</string>
+    <string name="captcha_dialog_continue">Продолжить</string>
 </resources>

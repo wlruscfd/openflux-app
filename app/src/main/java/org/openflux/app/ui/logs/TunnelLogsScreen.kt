@@ -169,6 +169,8 @@ private fun toneFor(kind: TunnelLogKind): LogTone = when (kind) {
         LogTone(Icons.Filled.Warning, MaterialTheme.colorScheme.tertiary)
     TunnelLogKind.ERROR ->
         LogTone(Icons.Filled.Close, MaterialTheme.colorScheme.error)
+    TunnelLogKind.CAPTCHA_REQUIRED ->
+        LogTone(Icons.Filled.Warning, MaterialTheme.colorScheme.error)
 }
 
 @Composable
@@ -185,6 +187,7 @@ private fun logText(entry: TunnelLogEntry): String = when (entry.kind) {
         reasonLabel(entry.reasonCode),
         entry.delaySeconds,
     )
+    TunnelLogKind.CAPTCHA_REQUIRED -> stringResource(R.string.logs_captcha_required)
 }
 
 @Composable
