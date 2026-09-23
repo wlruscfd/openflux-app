@@ -195,14 +195,27 @@ class OpenFluxVpnService : VpnService(), Protector {
     // Silently skips a package that no longer exists rather than failing the whole connection over it.
     private suspend fun applySplitTunneling(app: OpenFluxApplication, builder: Builder) {
         val mode = app.settingsRepository.splitTunnelMode.first()
+
+        // Without this, VpnService captures this app's own non-protected sockets too - including
+        // CaptchaWebViewDialog's WebView, which needs real internet access to show a CAPTCHA that
+        // is, by definition, blocking the tunnel it would otherwise be routed through. INCLUDE
+        // mode already excludes everything not explicitly allow-listed (and can't be combined with
+        // addDisallowedApplication on the same Builder), so this only applies to OFF/EXCLUDE.
+        if (mode != SplitTunnelMode.INCLUDE) {
+            try {
+                builder.addDisallowedApplication(packageName)
+            } catch (e: PackageManager.NameNotFoundException) {
+            }
+        }
+
         if (mode == SplitTunnelMode.OFF) return
 
         val packages = app.settingsRepository.splitTunnelApps.first()
-        for (packageName in packages) {
+        for (pkg in packages) {
             try {
                 when (mode) {
-                    SplitTunnelMode.EXCLUDE -> builder.addDisallowedApplication(packageName)
-                    SplitTunnelMode.INCLUDE -> builder.addAllowedApplication(packageName)
+                    SplitTunnelMode.EXCLUDE -> builder.addDisallowedApplication(pkg)
+                    SplitTunnelMode.INCLUDE -> builder.addAllowedApplication(pkg)
                     SplitTunnelMode.OFF -> Unit
                 }
             } catch (e: PackageManager.NameNotFoundException) {

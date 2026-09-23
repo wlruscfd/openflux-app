@@ -1,6 +1,7 @@
 package org.openflux.app.ui.home
 
 import android.annotation.SuppressLint
+import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -80,6 +81,12 @@ fun CaptchaWebViewDialog(
                         settings.domStorageEnabled = true
                         CookieManager.getInstance().setAcceptCookie(true)
                         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                        // A hardware-accelerated WebView's surface frequently renders solid black
+                        // inside a Compose Dialog window (a well-known platform quirk - the
+                        // Dialog's own window doesn't composite it correctly); software rendering
+                        // sidesteps that at the cost of a bit of scroll/paint performance, which
+                        // is irrelevant for a one-off CAPTCHA page.
+                        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
                     }
                 }
 
