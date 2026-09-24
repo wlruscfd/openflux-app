@@ -118,9 +118,9 @@ class DeployServerDetailViewModel(
         _message.value = DetailMessage(app.getString(R.string.deploy_settings_node_token_issued, token), isError = false)
     }
 
-    fun createKey(label: String, docUrl: String, trafficLimitGb: Double?, ownerRef: String) = runAction { client ->
+    fun createKey(label: String, docUrl: String, trafficLimitGb: Double?, ownerRef: String, transport: String) = runAction { client ->
         val bytes = trafficLimitGb?.let { (it * 1024 * 1024 * 1024).toLong() }
-        val created = client.createKey(label, docUrl, bytes, ownerRef)
+        val created = client.createKey(label, docUrl, bytes, ownerRef, transport)
         _message.value = DetailMessage(keyTokenMessage(R.string.deploy_keys_new_token, created), isError = false)
         _keys.value = client.listKeys()
     }

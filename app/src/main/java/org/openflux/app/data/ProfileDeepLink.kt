@@ -51,13 +51,20 @@ object ProfileDeepLink {
         val bytes = Base64.decode(data, BASE64_FLAGS)
         val json = JSONObject(String(bytes, StandardCharsets.UTF_8))
         val docUrlsArray = json.optJSONArray("doc_urls")
+        val transport = parseTransportName(json.optString("transport"))
+        val requestedMode = if (json.optString("mode") == "manual") ProfileMode.MANUAL else ProfileMode.KEY
+        val mode = if (transport == ManualTransport.MAILRU || transport == ManualTransport.BOARDS) {
+            ProfileMode.MANUAL
+        } else {
+            requestedMode
+        }
         Profile(
             id = "",
             name = json.optString("name", ""),
-            mode = if (json.optString("mode") == "manual") ProfileMode.MANUAL else ProfileMode.KEY,
+            mode = mode,
             controlUrl = json.optString("control_url", ""),
             keyToken = json.optString("key_token", ""),
-            manualTransport = parseTransportName(json.optString("transport")),
+            manualTransport = transport,
             docUrl = json.optString("doc_url", ""),
             docUrls = docUrlsArray?.let { arr -> List(arr.length()) { arr.optString(it, "") } } ?: emptyList(),
             maxToken = json.optString("max_token", ""),

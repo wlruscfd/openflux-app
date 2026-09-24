@@ -87,11 +87,11 @@ class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
         }
     }
 
-    fun createKey(label: String, docUrl: String, trafficLimitBytes: Long?, ownerRef: String): KeyToken {
+    fun createKey(label: String, docUrl: String, trafficLimitBytes: Long?, ownerRef: String, transport: String): KeyToken {
         val body = JSONObject()
             .put("label", label)
             .put("doc_url", docUrl)
-            .put("transport", "yandex")
+            .put("transport", transport)
             .put("owner_ref", ownerRef)
         if (trafficLimitBytes != null) body.put("traffic_limit_bytes", trafficLimitBytes)
         val resp = requestObject("POST", "/v1/admin/keys", body)!!

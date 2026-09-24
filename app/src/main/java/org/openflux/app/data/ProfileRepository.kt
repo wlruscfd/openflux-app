@@ -81,7 +81,7 @@ fun Profile.toStartTunnelConfigJson(
     put("mode", "manual")
     put("transport", transportName(manualTransport))
     when (manualTransport) {
-        ManualTransport.YANDEX, ManualTransport.VOLGA -> put("doc_url", docUrl)
+        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS -> put("doc_url", docUrl)
         ManualTransport.MAX -> {
             put("max_token", maxToken)
             put("max_uid", maxUid)

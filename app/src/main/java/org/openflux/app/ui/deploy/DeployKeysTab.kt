@@ -1,5 +1,7 @@
 package org.openflux.app.ui.deploy
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +41,7 @@ import org.openflux.app.data.AdminKey
 fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
     val keys by viewModel.keys.collectAsState()
     var label by remember { mutableStateOf("") }
+    var transport by remember { mutableStateOf("yandex") }
     var docUrl by remember { mutableStateOf("") }
     var trafficLimitGb by remember { mutableStateOf("") }
     var ownerRef by remember { mutableStateOf("") }
@@ -53,6 +57,33 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                         label = { Text(stringResource(R.string.deploy_keys_label)) },
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp),
+                    ) {
+                        FilterChip(
+                            selected = transport == "yandex",
+                            onClick = { transport = "yandex" },
+                            label = { Text(stringResource(R.string.profile_edit_transport_yandex)) },
+                        )
+                        FilterChip(
+                            selected = transport == "volga",
+                            onClick = { transport = "volga" },
+                            label = { Text(stringResource(R.string.profile_edit_transport_volga)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                        FilterChip(
+                            selected = transport == "mailru",
+                            onClick = { transport = "mailru" },
+                            label = { Text(stringResource(R.string.profile_edit_transport_mailru)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                        FilterChip(
+                            selected = transport == "boards",
+                            onClick = { transport = "boards" },
+                            label = { Text(stringResource(R.string.profile_edit_transport_boards)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                     OutlinedTextField(
                         value = docUrl,
                         onValueChange = { docUrl = it },
@@ -73,8 +104,9 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                     )
                     Button(
                         onClick = {
-                            viewModel.createKey(label, docUrl, trafficLimitGb.toDoubleOrNull(), ownerRef)
+                            viewModel.createKey(label, docUrl, trafficLimitGb.toDoubleOrNull(), ownerRef, transport)
                             label = ""
+                            transport = "yandex"
                             docUrl = ""
                             trafficLimitGb = ""
                             ownerRef = ""

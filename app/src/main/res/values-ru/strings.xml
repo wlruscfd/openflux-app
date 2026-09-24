@@ -71,7 +71,7 @@
     <string name="profile_edit_mode_key">Форк</string>
     <string name="profile_edit_mode_manual">Оригинальный</string>
     <string name="profile_edit_key_token">Ключ доступа</string>
-    <string name="profile_edit_doc_url">Ссылка на Yandex Docs</string>
+    <string name="profile_edit_doc_url">Ссылка на документ</string>
     <string name="profile_edit_doc_url_key_hint">Заполняется автоматически при импорте ссылки; можно вставить и вручную.</string>
     <string name="profile_edit_e2e_encryption">Сквозное шифрование (E2E)</string>
     <string name="profile_edit_e2e_encryption_hint">Шифрует трафик туннеля этим ключом. Включайте только после того, как убедитесь, что экзит-нода обновлена и поддерживает это — старая экзит-нода вообще не понимает зашифрованный трафик.</string>
@@ -79,6 +79,8 @@
     <string name="profile_edit_transport_yandex">Yandex Docs</string>
     <string name="profile_edit_transport_volga">Volga</string>
     <string name="profile_edit_transport_max">MAX</string>
+    <string name="profile_edit_transport_mailru">Mail.ru</string>
+    <string name="profile_edit_transport_boards">Яндекс Доски</string>
     <string name="profile_edit_max_token">Токен авторизации аккаунта MAX</string>
     <string name="profile_edit_max_uid">ID пользователя для звонка</string>
     <string name="profile_edit_transport_multistream">Yandex Docs (мультистрим)</string>
@@ -165,7 +167,7 @@
     <string name="deploy_keys_create">Создать ключ</string>
     <string name="deploy_keys_empty">Пока нет ключей.</string>
     <string name="deploy_keys_label">Название</string>
-    <string name="deploy_keys_doc_url">Ссылка на Yandex Docs</string>
+    <string name="deploy_keys_doc_url">Ссылка на документ</string>
     <string name="deploy_keys_traffic_limit_gb">Лимит трафика, ГБ (пусто = без лимита)</string>
     <string name="deploy_keys_owner_ref">Владелец (необязательно)</string>
     <string name="deploy_keys_new_token">Токен ключа (показан один раз): %1$s</string>

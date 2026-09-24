@@ -71,7 +71,7 @@
     <string name="profile_edit_mode_key">Fork</string>
     <string name="profile_edit_mode_manual">Original</string>
     <string name="profile_edit_key_token">Access key</string>
-    <string name="profile_edit_doc_url">Yandex Docs URL</string>
+    <string name="profile_edit_doc_url">Document URL</string>
     <string name="profile_edit_doc_url_key_hint">Filled in automatically when you import a link; you can also paste one here directly.</string>
     <string name="profile_edit_e2e_encryption">End-to-end encryption</string>
     <string name="profile_edit_e2e_encryption_hint">Encrypts tunnel traffic using this key. Turn on only after confirming the exit node has been updated to support it - an older exit node cannot understand encrypted traffic at all.</string>
@@ -79,6 +79,8 @@
     <string name="profile_edit_transport_yandex">Yandex Docs</string>
     <string name="profile_edit_transport_volga">Volga</string>
     <string name="profile_edit_transport_max">MAX</string>
+    <string name="profile_edit_transport_mailru">Mail.ru</string>
+    <string name="profile_edit_transport_boards">Yandex Boards</string>
     <string name="profile_edit_max_token">MAX account auth token</string>
     <string name="profile_edit_max_uid">Contact user ID to call</string>
     <string name="profile_edit_transport_multistream">Yandex Docs (multi-stream)</string>
@@ -165,7 +167,7 @@
     <string name="deploy_keys_create">Create key</string>
     <string name="deploy_keys_empty">No keys yet.</string>
     <string name="deploy_keys_label">Label</string>
-    <string name="deploy_keys_doc_url">Yandex Docs URL</string>
+    <string name="deploy_keys_doc_url">Document URL</string>
     <string name="deploy_keys_traffic_limit_gb">Traffic limit, GB (blank = unlimited)</string>
     <string name="deploy_keys_owner_ref">Owner (optional)</string>
     <string name="deploy_keys_new_token">Key token (shown once): %1$s</string>

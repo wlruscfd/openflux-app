@@ -132,7 +132,7 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                     )
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 12.dp)) {
                         FilterChip(
-                            selected = current.manualTransport != ManualTransport.YANDEX_MULTISTREAM,
+                            selected = current.manualTransport == ManualTransport.YANDEX,
                             onClick = { profile = current.copy(manualTransport = ManualTransport.YANDEX) },
                             label = { Text(stringResource(R.string.profile_edit_transport_yandex)) },
                         )
@@ -140,6 +140,18 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             selected = current.manualTransport == ManualTransport.YANDEX_MULTISTREAM,
                             onClick = { profile = current.copy(manualTransport = ManualTransport.YANDEX_MULTISTREAM) },
                             label = { Text(stringResource(R.string.profile_edit_transport_multistream)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.MAILRU,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.MAILRU) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_mailru)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.BOARDS,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.BOARDS) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_boards)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -202,9 +214,21 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             label = { Text(stringResource(R.string.profile_edit_transport_max)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.MAILRU,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.MAILRU) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_mailru)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.BOARDS,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.BOARDS) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_boards)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
                     }
                     when (current.manualTransport) {
-                        ManualTransport.YANDEX, ManualTransport.VOLGA -> {
+                        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS -> {
                             OutlinedTextField(
                                 value = current.docUrl,
                                 onValueChange = { profile = current.copy(docUrl = it) },
