@@ -171,13 +171,22 @@ class OpenFluxVpnService : VpnService(), Protector {
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
+        var initialized = false
         var lastChangeAt = 0L
         val cb = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                // Debounced: this fires per matching network, and an unthrottled reconnect storm caused choppy throughput.
+                if (!initialized) {
+                    initialized = true
+                    return
+                }
                 val now = android.os.SystemClock.elapsedRealtime()
                 if (now - lastChangeAt < NETWORK_CHANGE_DEBOUNCE_MS) return
                 lastChangeAt = now
+                runCatching { Mobile.networkChanged() }
+            }
+
+            override fun onLost(network: Network) {
+                if (!initialized) return
                 runCatching { Mobile.networkChanged() }
             }
         }

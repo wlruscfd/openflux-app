@@ -116,8 +116,7 @@ fun HomeScreen(
     val lastRetryDetail by OpenFluxVpnService.callback.lastRetryDetail.collectAsState()
     val connected = status is TunnelStatus.Connected || status is TunnelStatus.Connecting
     val buttonState = when {
-        status is TunnelStatus.Connected && channelReady -> ConnectionButtonState.Connected
-        status is TunnelStatus.Connected -> ConnectionButtonState.Establishing
+        status is TunnelStatus.Connected -> ConnectionButtonState.Connected
         status is TunnelStatus.Connecting -> ConnectionButtonState.Connecting
         else -> ConnectionButtonState.Idle
     }
