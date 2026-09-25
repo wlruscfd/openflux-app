@@ -38,6 +38,7 @@ object ProfileDeepLink {
             put("max_uid", profile.maxUid)
             put("mtu", profile.mtu)
             put("dns_upstream", profile.dnsUpstream)
+            put("force_bootstrap_dns", profile.forceBootstrapDns)
             put("auto_reconnect", profile.autoReconnect)
             if (profile.e2eEncryption) {
                 put("e2e_encryption", true)
@@ -71,6 +72,7 @@ object ProfileDeepLink {
             maxUid = json.optLong("max_uid", 0),
             mtu = json.optInt("mtu", 1400),
             dnsUpstream = json.optString("dns_upstream", "77.88.8.8"),
+            forceBootstrapDns = json.optString("force_bootstrap_dns", ""),
             autoReconnect = json.optBoolean("auto_reconnect", true),
             e2eEncryption = json.optBoolean("e2e_encryption", false),
         )

@@ -115,7 +115,7 @@ class OpenFluxVpnService : VpnService(), Protector {
                 .addRoute("0.0.0.0", 0)
                 // No IPv6 data path exists yet; routing it here too means it's captured and dropped, not leaked.
                 .addRoute("::", 0)
-                .addDnsServer(profile.dnsUpstream)
+                .addDnsServer(VPN_DNS_SERVER)
 
             applySplitTunneling(app, builder)
 
@@ -310,6 +310,7 @@ class OpenFluxVpnService : VpnService(), Protector {
         private const val NOTIFICATION_ID = 1
         private const val VPN_ADDRESS_V4 = "10.111.0.2"
         private const val VPN_ADDRESS_V6 = "fd00:6f70:666c::2"
+        private const val VPN_DNS_SERVER = "10.111.0.1"
         private const val NETWORK_CHANGE_DEBOUNCE_MS = 5000L
 
         // Shared across the app's lifetime, regardless of whether an Activity is currently bound to the service.
