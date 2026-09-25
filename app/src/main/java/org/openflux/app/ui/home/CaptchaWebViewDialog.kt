@@ -41,7 +41,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.openflux.app.R
 
 private const val POLL_INTERVAL_MS = 500L
-private const val AUTO_SOLVE_WINDOW_MS = 8_000L
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -51,12 +50,13 @@ fun CaptchaWebViewDialog(
     onSolved: (cookies: String) -> Unit,
 ) {
     val context = LocalContext.current
-    var revealed by remember(docUrl) { mutableStateOf(false) }
+    var challengeSolved by remember(docUrl) { mutableStateOf(false) }
 
     val webView = remember(docUrl) {
         WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
             setLayerType(View.LAYER_TYPE_SOFTWARE, null)
@@ -66,23 +66,26 @@ fun CaptchaWebViewDialog(
 
     LaunchedEffect(docUrl) {
         webView.loadUrl(docUrl)
-        val deadline = System.currentTimeMillis() + AUTO_SOLVE_WINDOW_MS
         while (isActive) {
             delay(POLL_INTERVAL_MS)
             val solved = suspendCancellableCoroutine { cont ->
-                webView.evaluateJavascript("!!document.getElementById('client-config')") { result ->
+                webView.evaluateJavascript(
+                    "!!document.getElementById('client-config') || (location.hostname === 'boards.yandex.ru' && location.pathname.indexOf('captcha') === -1)",
+                ) { result ->
                     if (cont.isActive) cont.resumeWith(Result.success(result == "true"))
                 }
             }
             if (solved) {
-                val cookies = CookieManager.getInstance().getCookie(docUrl)
-                if (!cookies.isNullOrBlank()) {
+                challengeSolved = true
+                val currentUrl = webView.url
+                val cookies = listOfNotNull(
+                    CookieManager.getInstance().getCookie(docUrl),
+                    currentUrl?.let { CookieManager.getInstance().getCookie(it) },
+                ).joinToString("; ")
+                if (cookies.isNotBlank()) {
                     onSolved(cookies)
                     return@LaunchedEffect
                 }
-            }
-            if (!revealed && System.currentTimeMillis() > deadline) {
-                revealed = true
             }
         }
     }
@@ -90,8 +93,6 @@ fun CaptchaWebViewDialog(
     DisposableEffect(webView) {
         onDispose { webView.destroy() }
     }
-
-    if (!revealed) return
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -124,8 +125,13 @@ fun CaptchaWebViewDialog(
 
                 TextButton(
                     onClick = {
-                        val cookies = CookieManager.getInstance().getCookie(docUrl)
-                        if (!cookies.isNullOrBlank()) {
+                        if (!challengeSolved) return@TextButton
+                        val currentUrl = webView.url
+                        val cookies = listOfNotNull(
+                            CookieManager.getInstance().getCookie(docUrl),
+                            currentUrl?.let { CookieManager.getInstance().getCookie(it) },
+                        ).joinToString("; ")
+                        if (cookies.isNotBlank()) {
                             onSolved(cookies)
                         }
                     },

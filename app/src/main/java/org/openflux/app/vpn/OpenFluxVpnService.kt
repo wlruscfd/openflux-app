@@ -211,7 +211,7 @@ class OpenFluxVpnService : VpnService(), Protector {
             try {
                 when (mode) {
                     SplitTunnelMode.EXCLUDE -> builder.addDisallowedApplication(pkg)
-                    SplitTunnelMode.INCLUDE -> builder.addAllowedApplication(pkg)
+                    SplitTunnelMode.INCLUDE -> if (pkg != packageName) builder.addAllowedApplication(pkg)
                     SplitTunnelMode.OFF -> Unit
                 }
             } catch (e: PackageManager.NameNotFoundException) {

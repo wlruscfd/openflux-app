@@ -234,9 +234,10 @@ fun HomeScreen(
                     OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
                 },
                 onSolved = { cookies ->
-                    runCatching { Mobile.provideCaptchaCookies(cookies) }
-                    OpenFluxVpnService.callback.dismissCaptchaPrompt()
-                    OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
+                    if (runCatching { Mobile.provideCaptchaCookies(cookies) }.isSuccess) {
+                        OpenFluxVpnService.callback.dismissCaptchaPrompt()
+                        OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
+                    }
                 },
             )
         }
