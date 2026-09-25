@@ -70,7 +70,7 @@ fun CaptchaWebViewDialog(
             delay(POLL_INTERVAL_MS)
             val solved = suspendCancellableCoroutine { cont ->
                 webView.evaluateJavascript(
-                    "!!document.getElementById('client-config') || (location.hostname === 'boards.yandex.ru' && location.pathname.indexOf('captcha') === -1)",
+                    "document.readyState === 'complete' && location.pathname.indexOf('captcha') === -1 && (!!document.getElementById('client-config') || location.hostname === 'boards.yandex.ru')",
                 ) { result ->
                     if (cont.isActive) cont.resumeWith(Result.success(result == "true"))
                 }

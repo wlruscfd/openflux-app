@@ -53,23 +53,26 @@ class ProfileRepository(
         secrets.delete(id)
     }
 
-    private fun ProfileEntity.toProfile(s: ProfileSecrets): Profile = Profile(
-        id = id,
-        name = name,
-        mode = runCatching { ProfileMode.valueOf(mode) }.getOrDefault(ProfileMode.MANUAL),
-        controlUrl = s.controlUrl,
-        keyToken = s.keyToken,
-        manualTransport = runCatching { ManualTransport.valueOf(manualTransport) }.getOrDefault(ManualTransport.YANDEX),
-        docUrl = s.docUrl,
-        docUrls = s.docUrls,
-        maxToken = s.maxToken,
-        maxUid = s.maxUid,
-        mtu = mtu,
-        dnsUpstream = dnsUpstream,
-        forceBootstrapDns = forceBootstrapDns,
-        autoReconnect = autoReconnect,
-        e2eEncryption = e2eEncryption,
-    )
+    private fun ProfileEntity.toProfile(s: ProfileSecrets): Profile {
+        val transport = runCatching { ManualTransport.valueOf(manualTransport) }.getOrDefault(ManualTransport.YANDEX)
+        return Profile(
+            id = id,
+            name = name,
+            mode = runCatching { ProfileMode.valueOf(mode) }.getOrDefault(ProfileMode.MANUAL),
+            controlUrl = s.controlUrl,
+            keyToken = s.keyToken,
+            manualTransport = transport,
+            docUrl = s.docUrl,
+            docUrls = s.docUrls,
+            maxToken = s.maxToken,
+            maxUid = s.maxUid,
+            mtu = mtu,
+            dnsUpstream = dnsUpstream,
+            forceBootstrapDns = forceBootstrapDns,
+            autoReconnect = autoReconnect,
+            e2eEncryption = e2eEncryption && transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS,
+        )
+    }
 }
 
 // Connecting always uses the already-known doc_url, never a live controlplane request a hostile network could block.
@@ -93,7 +96,7 @@ fun Profile.toStartTunnelConfigJson(
     put("dns_upstream", dnsUpstream)
     if (keyToken.isNotBlank()) {
         put("key_token", keyToken)
-        if (e2eEncryption) {
+        if (e2eEncryption && manualTransport != ManualTransport.MAILRU && manualTransport != ManualTransport.BOARDS) {
             put("e2e_encryption", true)
         }
     }

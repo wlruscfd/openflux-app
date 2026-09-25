@@ -59,6 +59,8 @@ object ProfileDeepLink {
         } else {
             requestedMode
         }
+        val e2e = json.optBoolean("e2e_encryption", false) &&
+            transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS
         Profile(
             id = "",
             name = json.optString("name", ""),
@@ -74,7 +76,7 @@ object ProfileDeepLink {
             dnsUpstream = json.optString("dns_upstream", "77.88.8.8"),
             forceBootstrapDns = json.optString("force_bootstrap_dns", ""),
             autoReconnect = json.optBoolean("auto_reconnect", true),
-            e2eEncryption = json.optBoolean("e2e_encryption", false),
+            e2eEncryption = e2e,
         )
     }.getOrNull()
 
