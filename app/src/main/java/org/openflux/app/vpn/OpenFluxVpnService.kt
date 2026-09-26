@@ -207,9 +207,11 @@ class OpenFluxVpnService : VpnService(), Protector {
 
         // Otherwise VpnService also routes this app's own WebView into the tunnel it needs to bypass.
         if (mode != SplitTunnelMode.INCLUDE) {
-            try {
-                builder.addDisallowedApplication(packageName)
-            } catch (e: PackageManager.NameNotFoundException) {
+            for (pkg in setOf(packageName) + WEBVIEW_PACKAGES) {
+                try {
+                    builder.addDisallowedApplication(pkg)
+                } catch (e: PackageManager.NameNotFoundException) {
+                }
             }
         }
 
@@ -312,6 +314,7 @@ class OpenFluxVpnService : VpnService(), Protector {
         private const val VPN_ADDRESS_V6 = "fd00:6f70:666c::2"
         private const val VPN_DNS_SERVER = "10.111.0.1"
         private const val NETWORK_CHANGE_DEBOUNCE_MS = 5000L
+        private val WEBVIEW_PACKAGES = setOf("com.google.android.webview", "com.android.webview")
 
         // Shared across the app's lifetime, regardless of whether an Activity is currently bound to the service.
         val callback = MobileCallback()

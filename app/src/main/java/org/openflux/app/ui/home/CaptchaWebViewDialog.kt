@@ -1,8 +1,11 @@
 package org.openflux.app.ui.home
 
 import android.annotation.SuppressLint
+import android.util.Log
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +63,11 @@ fun CaptchaWebViewDialog(
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
             setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                    Log.e("OpenFluxCaptcha", "WebView error ${error.errorCode} ${error.description} for ${request.url}")
+                }
+            }
         }
     }
 
