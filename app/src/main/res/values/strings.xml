@@ -81,6 +81,7 @@
     <string name="profile_edit_transport_max">MAX</string>
     <string name="profile_edit_transport_mailru">Mail.ru</string>
     <string name="profile_edit_transport_boards">Yandex Boards</string>
+    <string name="profile_edit_transport_mts">MTS Link Boards</string>
     <string name="profile_edit_max_token">MAX account auth token</string>
     <string name="profile_edit_max_uid">Contact user ID to call</string>
     <string name="profile_edit_transport_multistream">Yandex Docs (multi-stream)</string>

@@ -83,6 +83,12 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                             label = { Text(stringResource(R.string.profile_edit_transport_boards)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
+                        FilterChip(
+                            selected = transport == "mts",
+                            onClick = { transport = "mts" },
+                            label = { Text(stringResource(R.string.profile_edit_transport_mts)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
                     }
                     OutlinedTextField(
                         value = docUrl,

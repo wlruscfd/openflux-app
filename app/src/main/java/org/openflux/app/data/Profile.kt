@@ -3,7 +3,7 @@ package org.openflux.app.data
 enum class ProfileMode { KEY, MANUAL }
 
 // Despite the name, this is set for both profile modes - see ProfileEditScreen.
-enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM, MAILRU, BOARDS }
+enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM, MAILRU, BOARDS, MTS }
 
 /** The wire name mobile.Config and deep links use for a transport - see mobile/mobile.go. */
 fun transportName(t: ManualTransport): String = when (t) {
@@ -13,6 +13,7 @@ fun transportName(t: ManualTransport): String = when (t) {
     ManualTransport.YANDEX_MULTISTREAM -> "yandex_multistream"
     ManualTransport.MAILRU -> "mailru"
     ManualTransport.BOARDS -> "boards"
+    ManualTransport.MTS -> "mts"
 }
 
 fun parseTransportName(name: String): ManualTransport = when (name) {
@@ -21,6 +22,7 @@ fun parseTransportName(name: String): ManualTransport = when (name) {
     "yandex_multistream" -> ManualTransport.YANDEX_MULTISTREAM
     "mailru" -> ManualTransport.MAILRU
     "boards" -> ManualTransport.BOARDS
+    "mts" -> ManualTransport.MTS
     else -> ManualTransport.YANDEX
 }
 

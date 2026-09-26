@@ -81,6 +81,7 @@
     <string name="profile_edit_transport_max">MAX</string>
     <string name="profile_edit_transport_mailru">Mail.ru</string>
     <string name="profile_edit_transport_boards">Яндекс Доски</string>
+    <string name="profile_edit_transport_mts">MTS Link Доски</string>
     <string name="profile_edit_max_token">Токен авторизации аккаунта MAX</string>
     <string name="profile_edit_max_uid">ID пользователя для звонка</string>
     <string name="profile_edit_transport_multistream">Yandex Docs (мультистрим)</string>
