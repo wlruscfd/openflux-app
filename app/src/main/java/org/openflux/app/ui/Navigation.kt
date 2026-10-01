@@ -1,8 +1,12 @@
 package org.openflux.app.ui
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -22,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -59,6 +64,25 @@ private const val DEPLOY_ID_ARG = "serverId"
 private const val SPLIT_TUNNEL_ROUTE = "split_tunnel"
 private const val QR_SCAN_ROUTE = "qr_scan"
 private const val SITE_SPLIT_TUNNEL_ROUTE = "site_split_tunnel"
+
+private val TAB_ROUTES = setOf(
+    Destination.Home.route,
+    Destination.Logs.route,
+    Destination.Profiles.route,
+    Destination.Deploy.route,
+    Destination.Settings.route,
+)
+
+// Tabs sit side by side with no inherent order, so sliding between them would imply a direction
+// that isn't there - only screens pushed on top of a tab (edit/detail/settings sub-pages) get the
+// slide; switching tabs just crossfades.
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
+    initialState.destination.route in TAB_ROUTES && targetState.destination.route in TAB_ROUTES
+
+private const val TAB_FADE_MS = 160
+private const val PUSH_SLIDE_MS = 280
+private const val TAB_SCALE_IN_START = 0.97f
+private const val TAB_SCALE_OUT_END = 1.02f
 
 @Composable
 fun OpenFluxNavHost(
@@ -116,6 +140,38 @@ fun OpenFluxNavHost(
             navController = navController,
             startDestination = Destination.Home.route,
             modifier = androidx.compose.ui.Modifier.padding(padding),
+            enterTransition = {
+                if (isTabSwitch()) {
+                    fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
+                } else {
+                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(PUSH_SLIDE_MS)) +
+                        fadeIn(tween(PUSH_SLIDE_MS))
+                }
+            },
+            exitTransition = {
+                if (isTabSwitch()) {
+                    fadeOut(tween(TAB_FADE_MS)) + scaleOut(targetScale = TAB_SCALE_OUT_END, animationSpec = tween(TAB_FADE_MS))
+                } else {
+                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(PUSH_SLIDE_MS)) +
+                        fadeOut(tween(PUSH_SLIDE_MS))
+                }
+            },
+            popEnterTransition = {
+                if (isTabSwitch()) {
+                    fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
+                } else {
+                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(PUSH_SLIDE_MS)) +
+                        fadeIn(tween(PUSH_SLIDE_MS))
+                }
+            },
+            popExitTransition = {
+                if (isTabSwitch()) {
+                    fadeOut(tween(TAB_FADE_MS)) + scaleOut(targetScale = TAB_SCALE_OUT_END, animationSpec = tween(TAB_FADE_MS))
+                } else {
+                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(PUSH_SLIDE_MS)) +
+                        fadeOut(tween(PUSH_SLIDE_MS))
+                }
+            },
         ) {
             composable(Destination.Home.route) {
                 HomeScreen(

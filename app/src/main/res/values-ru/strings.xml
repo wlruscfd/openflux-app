@@ -207,7 +207,11 @@
     <string name="tile_subtitle_disconnected">Нажмите для подключения</string>
 
     <string name="settings_title">Настройки</string>
-    <string name="settings_start_on_boot">Подключаться при загрузке устройства</string>
+    <string name="settings_connection_mode">Режим подключения</string>
+    <string name="settings_connection_mode_vpn">VPN</string>
+    <string name="settings_connection_mode_socks5">SOCKS5</string>
+    <string name="settings_connection_mode_vpn_hint">Через туннель идёт весь трафик устройства.</string>
+    <string name="settings_connection_mode_socks5_hint">Запускает локальный SOCKS5-прокси вместо этого - укажите его в настройках нужных приложений, разрешение VPN не требуется.</string>
     <string name="settings_default_mtu">MTU по умолчанию для новых профилей</string>
     <string name="settings_default_dns">DNS по умолчанию для новых профилей</string>
     <string name="settings_socks5_port">Порт локального SOCKS5-прокси</string>
@@ -242,6 +246,11 @@
     <string name="vpn_notification_connecting">Подключение…</string>
     <string name="vpn_notification_disconnect_action">Отключить</string>
 
+    <string name="alerts_notification_channel">Оповещения OpenFlux</string>
+    <string name="alerts_one_way_traffic_title">Трафик идёт только в одну сторону</string>
+    <string name="alerts_one_way_traffic_text">Конфиг не работает - данные уходят, но ничего не приходит обратно. Попробуйте другой профиль или проверьте ключ.</string>
+    <string name="home_status_one_way">Трафик в одну сторону - конфиг не работает</string>
+
     <string name="socks5_notification_channel">OpenFlux SOCKS5-прокси</string>
     <string name="socks5_notification_title">SOCKS5-прокси</string>
     <string name="socks5_notification_connecting">Запуск…</string>
@@ -251,6 +260,7 @@
     <string name="home_socks5_hint">Укажите этот адрес в настройках прокси нужного приложения — через него пойдёт трафик только этого приложения, в отличие от полного VPN-режима.</string>
     <string name="captcha_dialog_title">Решите проверку, чтобы продолжить</string>
     <string name="captcha_dialog_continue">Продолжить</string>
+    <string name="captcha_dialog_wbv_hint">Яндекс проверяет вас в фоне. Ничего делать не нужно - окно закроется само, пустая страница здесь это нормально.</string>
 	<string name="deploy_keys_edit_enabled">Включён</string>
 	<string name="deploy_keys_edit_cancel">Отмена</string>
 	<string name="deploy_refresh">Обновить</string>
@@ -283,4 +293,18 @@
 	<string name="profile_edit_send_cookies_no_token">У профиля нет токена ключа.</string>
 	<string name="profile_edit_send_cookies_rejected">Controlplane отклонил куки.</string>
 	<string name="profile_edit_send_cookies_network">Не удалось достучаться до controlplane.</string>
+    <string name="profile_edit_send_cookies_via_tunnel">Отправить через туннель другого профиля</string>
+    <string name="profile_edit_send_cookies_via_tunnel_hint">Включай, если сеть блокирует контрол-плейн напрямую. Нужен запущенный SOCKS5 другого профиля.</string>
+    <string name="profile_edit_send_cookies_sending">Отправка...</string>
+    <string name="profile_edit_cookies_sent_at">Куки отправлены на exit-узел %1$s</string>
+    <string name="profile_edit_cookies_failed_at">Последняя отправка кук провалилась (%1$s): %2$s</string>
+    <string name="profile_edit_send_cookies_no_tunnel">Нет туннеля для маршрута - сначала запусти SOCKS5 профиля</string>
+    <string name="profiles_cookies_badge_sent">куки отправлены</string>
+    <string name="profiles_cookies_badge_failed">отправка кук провалилась</string>
+    <string name="profile_transport_label">Транспорт</string>
+    <string name="split_tunnel_selected_count">Выбрано: %1$d</string>
+    <string name="balancer_profile_name">Авто-балансировщик</string>
+    <string name="balancer_profile_hint">Выбирает профиль, который работает. Профиль, только что упавший, пропускается 5 минут.</string>
+    <string name="balancer_connecting_via">через %1$s</string>
+    <string name="balancer_no_target">нет рабочего профиля</string>
 </resources>

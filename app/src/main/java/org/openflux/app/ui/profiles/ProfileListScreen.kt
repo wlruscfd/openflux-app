@@ -85,6 +85,7 @@ fun ProfileListScreen(
         },
     )
     val state by viewModel.state.collectAsState()
+    val cookieRecords by app.cookiePushStore.records.collectAsState()
 
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -138,10 +139,12 @@ fun ProfileListScreen(
                         ProfileRow(
                             profile = profile,
                             active = profile.id == state.activeProfileId,
+                            cookieRecord = cookieRecords[profile.id],
                             onSelect = { viewModel.setActive(profile.id) },
                             onEdit = { onEditProfile(profile.id) },
                             onShare = { shareMenuProfile = profile },
                             onDelete = { viewModel.delete(profile.id) },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }

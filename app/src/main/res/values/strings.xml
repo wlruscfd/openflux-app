@@ -210,7 +210,11 @@
     <string name="tile_subtitle_disconnected">Tap to connect</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_start_on_boot">Connect on device boot</string>
+    <string name="settings_connection_mode">Connection mode</string>
+    <string name="settings_connection_mode_vpn">VPN</string>
+    <string name="settings_connection_mode_socks5">SOCKS5</string>
+    <string name="settings_connection_mode_vpn_hint">Routes the whole device through the tunnel.</string>
+    <string name="settings_connection_mode_socks5_hint">Runs a local SOCKS5 proxy instead - point individual apps at it, no VPN permission needed.</string>
     <string name="settings_default_mtu">Default MTU for new profiles</string>
     <string name="settings_default_dns">Default DNS server for new profiles</string>
     <string name="settings_socks5_port">Local SOCKS5 proxy port</string>
@@ -245,6 +249,11 @@
     <string name="vpn_notification_connecting">Connecting…</string>
     <string name="vpn_notification_disconnect_action">Disconnect</string>
 
+    <string name="alerts_notification_channel">OpenFlux alerts</string>
+    <string name="alerts_one_way_traffic_title">Traffic goes only one way</string>
+    <string name="alerts_one_way_traffic_text">The config isn\'t working - data is being sent but nothing comes back. Try another profile or check the key.</string>
+    <string name="home_status_one_way">One-way traffic - the config isn\'t working</string>
+
     <string name="socks5_notification_channel">OpenFlux SOCKS5 proxy</string>
     <string name="socks5_notification_title">SOCKS5 proxy</string>
     <string name="socks5_notification_connecting">Starting…</string>
@@ -254,6 +263,7 @@
     <string name="home_socks5_hint">Point an app\'s proxy settings at this address - only that app\'s traffic goes through it, unlike full VPN mode.</string>
     <string name="captcha_dialog_title">Solve the check to continue</string>
     <string name="captcha_dialog_continue">Continue</string>
+    <string name="captcha_dialog_wbv_hint">Yandex is checking you in the background. No action needed - the window closes by itself, a blank page here is normal.</string>
 	<string name="deploy_refresh">Refresh</string>
 	<string name="deploy_detail_tab_stats">Traffic</string>
 	<string name="deploy_keys_updated">Key updated</string>
@@ -286,4 +296,18 @@
 	<string name="profile_edit_send_cookies_no_token">This profile has no key token.</string>
 	<string name="profile_edit_send_cookies_rejected">The controlplane rejected the cookies.</string>
 	<string name="profile_edit_send_cookies_network">Could not reach the controlplane.</string>
+    <string name="profile_edit_send_cookies_via_tunnel">Send through another profile\'s tunnel</string>
+    <string name="profile_edit_send_cookies_via_tunnel_hint">Use this when the network blocks the controlplane directly. Needs the local SOCKS5 proxy of a running profile.</string>
+    <string name="profile_edit_send_cookies_sending">Sending...</string>
+    <string name="profile_edit_cookies_sent_at">Cookies were sent to the exit node at %1$s</string>
+    <string name="profile_edit_cookies_failed_at">Last cookie send failed (%1$s): %2$s</string>
+    <string name="profile_edit_send_cookies_no_tunnel">No tunnel to route through - start a profile\'s SOCKS5 proxy first</string>
+    <string name="profiles_cookies_badge_sent">cookies sent</string>
+    <string name="profiles_cookies_badge_failed">cookie send failed</string>
+    <string name="profile_transport_label">Transport</string>
+    <string name="split_tunnel_selected_count">Selected: %1$d</string>
+    <string name="balancer_profile_name">Auto-balance</string>
+    <string name="balancer_profile_hint">Picks the profile that has been working. A profile that just failed is skipped for 5 minutes.</string>
+    <string name="balancer_connecting_via">via %1$s</string>
+    <string name="balancer_no_target">no working profile found</string>
 </resources>

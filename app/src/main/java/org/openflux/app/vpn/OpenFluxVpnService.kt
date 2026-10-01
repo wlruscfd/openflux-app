@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -22,8 +23,10 @@ import mobile.Protector
 import org.openflux.app.MainActivity
 import org.openflux.app.OpenFluxApplication
 import org.openflux.app.R
+import org.openflux.app.data.BALANCER_PROFILE_ID
 import org.openflux.app.data.ManualTransport
 import org.openflux.app.data.Profile
+import org.openflux.app.data.ProfileBalancer
 import org.openflux.app.data.SplitTunnelMode
 import org.openflux.app.data.isReadyToConnect
 import org.openflux.app.data.toStartTunnelConfigJson
@@ -41,6 +44,11 @@ class OpenFluxVpnService : VpnService(), Protector {
 
     // Tracked so a later disconnect() or overlapping connect() can actually cancel it.
     private var connectJob: Job? = null
+
+    private val healthChecker = TunnelHealthChecker(serviceScope, callback.channelReady, callback.stats) { ok ->
+        callback.setConnectivityOk(ok)
+        if (ok == false) handleOneWayTraffic() else clearOneWayTrafficAlert()
+    }
 
     // gomobile binds Go's `int` to a Kotlin `long`, so protect takes a Long here even though VpnService.protect takes an Int.
     override fun protect(fd: Long): Boolean = super.protect(fd.toInt())
@@ -83,12 +91,18 @@ class OpenFluxVpnService : VpnService(), Protector {
         // A new connect() always supersedes whatever this service was previously trying to do.
         pendingReconnectJob?.cancel()
         pendingReconnectJob = null
-        connectJob?.cancel()
+        val previousConnectJob = connectJob
+        healthChecker.stop()
+        clearOneWayTrafficAlert()
 
         startForeground(NOTIFICATION_ID, buildNotification(getString(R.string.vpn_notification_connecting)))
         callback.reset()
 
         connectJob = serviceScope.launch {
+            // cancel() alone doesn't interrupt a blocking Mobile.startTunnel() call already in
+            // flight, so without waiting here this job could call startTunnel while the stale one
+            // is still inside it - Go's StartTunnel then rejects both with "call StopTunnel first".
+            previousConnectJob?.cancelAndJoin()
             val app = application as OpenFluxApplication
             val profile = app.profileRepository.getById(profileId)
             if (profile == null) {
@@ -103,6 +117,7 @@ class OpenFluxVpnService : VpnService(), Protector {
                     "key not resolved yet - open the profile and tap \"Check key\""
                 }
                 callback.onStatus("error:$reason")
+                app.profileHealthStore.recordFailure(profile.id, reason)
                 stopSelf()
                 return@launch
             }
@@ -140,6 +155,11 @@ class OpenFluxVpnService : VpnService(), Protector {
             val fd = pfd.detachFd()
             establishedFd = fd
 
+            // Guards against a stale session Go still thinks is running - e.g. a superseded
+            // connect() whose startTunnel call won the race before cancelAndJoin caught up above.
+            // A no-op when nothing is actually running.
+            runCatching { Mobile.stopTunnel() }
+
             try {
                 Mobile.startTunnel(
                     fd.toLong(),
@@ -149,14 +169,19 @@ class OpenFluxVpnService : VpnService(), Protector {
                 )
             } catch (t: Throwable) {
                 callback.onStatus("error:${t.message}")
+                // Only this counts against the profile: a lost VPN slot or a missing permission is
+                // the device's state, and blaming the config for it would poison the balancer.
+                app.profileHealthStore.recordFailure(profile.id, t.message ?: "startTunnel failed")
                 stopSelf()
                 return@launch
             }
 
             connectedProfile = profile
             app.settingsRepository.setLastConnectedProfileId(profile.id)
+            app.profileHealthStore.recordSuccess(profile.id)
             if (profile.autoReconnect) registerNetworkCallback()
             updateNotification(getString(R.string.vpn_notification_connected, profile.name))
+            healthChecker.start()
         }
     }
 
@@ -238,6 +263,8 @@ class OpenFluxVpnService : VpnService(), Protector {
         connectJob = null
         unregisterNetworkCallback()
         connectedProfile = null
+        healthChecker.stop()
+        clearOneWayTrafficAlert()
         val app = application as OpenFluxApplication
         serviceScope.launch {
             app.settingsRepository.setLastConnectedProfileId(null)
@@ -274,6 +301,8 @@ class OpenFluxVpnService : VpnService(), Protector {
 
     override fun onDestroy() {
         unregisterNetworkCallback()
+        healthChecker.stop()
+        clearOneWayTrafficAlert()
         runCatching { Mobile.stopTunnel() }
         // Without this, onRevoke's delayed reconnect coroutine could still call connect() against a destroyed Service.
         serviceScope.cancel()
@@ -307,12 +336,46 @@ class OpenFluxVpnService : VpnService(), Protector {
         manager.notify(NOTIFICATION_ID, buildNotification(text))
     }
 
+    private fun handleOneWayTraffic() {
+        postOneWayTrafficAlert()
+        val profile = connectedProfile ?: return
+        val app = application as OpenFluxApplication
+        app.profileHealthStore.recordFailure(profile.id, "one-way traffic")
+        serviceScope.launch {
+            if (app.settingsRepository.activeProfileId.first() != BALANCER_PROFILE_ID) return@launch
+            val profiles = app.profileRepository.observeAll().first()
+            val next = ProfileBalancer.pick(profiles, app.profileHealthStore.health.value, app.profileHealthStore::isInCooldown)
+            if (next != null && next.id != profile.id) connect(next.id)
+        }
+    }
+
+    private fun postOneWayTrafficAlert() {
+        val openApp = PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(this, OpenFluxApplication.ALERTS_NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(getString(R.string.alerts_one_way_traffic_title))
+            .setContentText(getString(R.string.alerts_one_way_traffic_text))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(getString(R.string.alerts_one_way_traffic_text)))
+            .setContentIntent(openApp)
+            .setAutoCancel(true)
+            .build()
+        getSystemService(android.app.NotificationManager::class.java).notify(ONE_WAY_ALERT_NOTIFICATION_ID, notification)
+    }
+
+    private fun clearOneWayTrafficAlert() {
+        getSystemService(android.app.NotificationManager::class.java).cancel(ONE_WAY_ALERT_NOTIFICATION_ID)
+    }
+
     companion object {
         const val ACTION_CONNECT = "org.openflux.app.action.CONNECT"
         const val ACTION_DISCONNECT = "org.openflux.app.action.DISCONNECT"
         const val EXTRA_PROFILE_ID = "profile_id"
 
         private const val NOTIFICATION_ID = 1
+        private const val ONE_WAY_ALERT_NOTIFICATION_ID = 3
         private const val VPN_ADDRESS_V4 = "10.111.0.2"
         private const val VPN_ADDRESS_V6 = "fd00:6f70:666c::2"
         private const val VPN_DNS_SERVER = "10.111.0.1"

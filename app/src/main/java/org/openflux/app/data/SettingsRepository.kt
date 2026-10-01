@@ -17,6 +17,8 @@ private val Context.dataStore by preferencesDataStore(name = "openflux_settings"
 // EXCLUDE: listed apps bypass the VPN. INCLUDE: only listed apps are tunneled. OFF: full tunnel (default).
 enum class SplitTunnelMode { OFF, EXCLUDE, INCLUDE }
 
+enum class ConnectionMode { VPN, SOCKS5 }
+
 /** App-level (not per-profile) flexible settings. */
 class SettingsRepository(private val context: Context) {
 
@@ -27,8 +29,14 @@ class SettingsRepository(private val context: Context) {
     val lastConnectedProfileId: Flow<String?> =
         context.dataStore.data.map { it[Keys.LAST_CONNECTED_PROFILE_ID] }
 
-    val startOnBoot: Flow<Boolean> =
-        context.dataStore.data.map { it[Keys.START_ON_BOOT] ?: false }
+    val connectionMode: Flow<ConnectionMode> =
+        context.dataStore.data.map {
+            runCatching { ConnectionMode.valueOf(it[Keys.CONNECTION_MODE] ?: "") }.getOrDefault(ConnectionMode.VPN)
+        }
+
+    suspend fun setConnectionMode(mode: ConnectionMode) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.CONNECTION_MODE] = mode.name }
+    }
 
     val defaultMtu: Flow<Int> =
         context.dataStore.data.map { it[Keys.DEFAULT_MTU] ?: 1400 }
@@ -72,10 +80,6 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setStartOnBoot(enabled: Boolean) = withContext(NonCancellable) {
-        context.dataStore.edit { it[Keys.START_ON_BOOT] = enabled }
-    }
-
     suspend fun setDefaultMtu(mtu: Int) = withContext(NonCancellable) {
         context.dataStore.edit { it[Keys.DEFAULT_MTU] = mtu }
     }
@@ -111,7 +115,7 @@ class SettingsRepository(private val context: Context) {
     private object Keys {
         val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
         val LAST_CONNECTED_PROFILE_ID = stringPreferencesKey("last_connected_profile_id")
-        val START_ON_BOOT = booleanPreferencesKey("start_on_boot")
+        val CONNECTION_MODE = stringPreferencesKey("connection_mode")
         val DEFAULT_MTU = intPreferencesKey("default_mtu")
         val DEFAULT_DNS = stringPreferencesKey("default_dns")
         val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")

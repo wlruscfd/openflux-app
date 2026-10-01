@@ -18,6 +18,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -47,6 +50,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
+import org.openflux.app.data.ConnectionMode
 import org.openflux.app.data.SettingsRepository
 
 private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
@@ -55,13 +59,13 @@ private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
 }
 
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
-    val startOnBoot = repository.startOnBoot
+    val connectionMode = repository.connectionMode
     val defaultMtu = repository.defaultMtu
     val defaultDns = repository.defaultDns
     val verboseLogging = repository.verboseLogging
     val socks5Port = repository.socks5Port
 
-    fun setStartOnBoot(enabled: Boolean) = viewModelScope.launch { repository.setStartOnBoot(enabled) }
+    fun setConnectionMode(mode: ConnectionMode) = viewModelScope.launch { repository.setConnectionMode(mode) }
     fun setDefaultMtu(mtu: Int) = viewModelScope.launch { repository.setDefaultMtu(mtu) }
     fun setDefaultDns(dns: String) = viewModelScope.launch { repository.setDefaultDns(dns) }
     fun setVerboseLogging(enabled: Boolean) = viewModelScope.launch { repository.setVerboseLogging(enabled) }
@@ -76,8 +80,8 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
         factory = viewModelFactory { initializer { SettingsViewModel(app.settingsRepository) } },
     )
 
-    val startOnBoot by viewModel.startOnBoot.collectAsState(initial = false)
     val verboseLogging by viewModel.verboseLogging.collectAsState(initial = false)
+    val connectionMode by viewModel.connectionMode.collectAsState(initial = ConnectionMode.VPN)
 
     // Not collectAsState: round-tripping every keystroke through the DataStore Flow made typing feel laggy.
     var mtuText by remember { mutableStateOf<String?>(null) }
@@ -107,17 +111,36 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
         Column(
             Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    stringResource(R.string.settings_start_on_boot),
-                    modifier = Modifier.weight(1f).padding(end = 12.dp),
-                )
-                Switch(checked = startOnBoot, onCheckedChange = viewModel::setStartOnBoot)
+            Text(
+                stringResource(R.string.settings_connection_mode),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                SegmentedButton(
+                    selected = connectionMode == ConnectionMode.VPN,
+                    onClick = { viewModel.setConnectionMode(ConnectionMode.VPN) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                ) { Text(stringResource(R.string.settings_connection_mode_vpn)) }
+                SegmentedButton(
+                    selected = connectionMode == ConnectionMode.SOCKS5,
+                    onClick = { viewModel.setConnectionMode(ConnectionMode.SOCKS5) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                ) { Text(stringResource(R.string.settings_connection_mode_socks5)) }
             }
+            Text(
+                stringResource(
+                    if (connectionMode == ConnectionMode.VPN) {
+                        R.string.settings_connection_mode_vpn_hint
+                    } else {
+                        R.string.settings_connection_mode_socks5_hint
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
             if (mtuText != null && dnsText != null) {
                 OutlinedTextField(

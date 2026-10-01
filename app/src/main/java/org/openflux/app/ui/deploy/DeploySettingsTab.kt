@@ -27,8 +27,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.graphics.Color
 import org.openflux.app.R
 import org.openflux.app.data.AdminIngestToken
+
+private val NodeActiveGreen = Color(0xFF10B981)
 
 // A deployed server always has exactly one exit node, so this shows that single node, not a general nodes list.
 @Composable
@@ -48,6 +51,7 @@ fun DeploySettingsTab(viewModel: DeployServerDetailViewModel) {
                     if (node != null) {
                         Text(
                             stringResource(R.string.deploy_settings_node_status, nodeStatusLabel(node.status)),
+                            color = if (node.status == "active") NodeActiveGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 12.dp),
                         )
                         Text(stringResource(R.string.deploy_settings_node_max_keys, node.maxKeys))
@@ -118,14 +122,15 @@ fun DeploySettingsTab(viewModel: DeployServerDetailViewModel) {
             IngestTokenRow(
                 token = token,
                 onToggleEnabled = { viewModel.setIngestTokenEnabled(token.id, !token.enabled) },
+                modifier = Modifier.animateItem(),
             )
         }
     }
 }
 
 @Composable
-private fun IngestTokenRow(token: AdminIngestToken, onToggleEnabled: () -> Unit) {
-    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+private fun IngestTokenRow(token: AdminIngestToken, onToggleEnabled: () -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

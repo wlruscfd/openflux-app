@@ -69,6 +69,17 @@ class MobileCallback : Callback {
     private val _channelReady = MutableStateFlow(false)
     val channelReady: StateFlow<Boolean> = _channelReady
 
+    // null = not checked yet (or no longer known good, e.g. after a reconnect). true/false come
+    // from TunnelHealthChecker actually round-tripping a request once channelReady is true - the
+    // channel handshake succeeding only means our side thinks it's connected, not that packets
+    // survive the trip and back.
+    private val _connectivityOk = MutableStateFlow<Boolean?>(null)
+    val connectivityOk: StateFlow<Boolean?> = _connectivityOk
+
+    fun setConnectivityOk(ok: Boolean?) {
+        _connectivityOk.value = ok
+    }
+
     private val _stats = MutableStateFlow(TrafficStats())
     val stats: StateFlow<TrafficStats> = _stats
 
@@ -124,6 +135,7 @@ class MobileCallback : Callback {
         }
         if (status == "stopped" || status.startsWith("error:")) {
             _channelReady.value = false
+            _connectivityOk.value = null
             _captchaDocUrl.value = null
             pendingCaptchaUrl = null
             _captchaPending.value = false
@@ -138,9 +150,13 @@ class MobileCallback : Callback {
     // Unlike onStatus, these keep arriving for every silent background reconnect, not just once.
     override fun onLogEvent(code: String, detail: String) {
         when (code) {
-            "connecting", "retrying" -> _channelReady.value = false
+            "connecting", "retrying" -> {
+                _channelReady.value = false
+                _connectivityOk.value = null
+            }
             "connected" -> {
                 _channelReady.value = true
+                _connectivityOk.value = null
                 _lastRetryDetail.value = null
                 suppressedCaptchaUrl = null
                 pendingCaptchaUrl = null
@@ -228,6 +244,7 @@ class MobileCallback : Callback {
         _status.value = TunnelStatus.Connecting
         _stats.value = TrafficStats()
         _channelReady.value = false
+        _connectivityOk.value = null
         _lastRetryDetail.value = null
         suppressedCaptchaUrl = null
         pendingCaptchaUrl = null

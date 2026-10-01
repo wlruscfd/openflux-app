@@ -1,16 +1,26 @@
 package org.openflux.app.ui.deploy
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,8 +31,10 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -285,18 +298,39 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 if (status == DeployStatus.RUNNING) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 12.dp))
+                    CircularProgressIndicator(modifier = Modifier.padding(end = 12.dp).size(22.dp), strokeWidth = 2.dp)
                     Text(currentStep ?: stringResource(R.string.deploy_detail_deploying))
                 } else {
                     Button(onClick = viewModel::deployNow) {
                         Text(stringResource(R.string.deploy_detail_deploy_now))
                     }
+                    if (status != DeployStatus.NONE) {
+                        Icon(
+                            statusIcon(status),
+                            contentDescription = null,
+                            tint = statusColor(status),
+                            modifier = Modifier.padding(start = 12.dp).size(20.dp),
+                        )
+                        Text(
+                            statusLabel(status),
+                            color = statusColor(status),
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
                 }
             }
-            server?.let { s ->
-                if (status == DeployStatus.SUCCESS) {
+            AnimatedVisibility(
+                visible = server != null && status == DeployStatus.SUCCESS,
+                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+            ) {
+                val s = server
+                if (s != null) {
                     Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                         SelectionContainer {
                             Column(modifier = Modifier.padding(12.dp)) {
@@ -317,24 +351,69 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
                 }
             }
 
-            message?.let { msg ->
-                Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                        Text(msg.text, modifier = Modifier.weight(1f))
-                        IconButton(onClick = viewModel::clearMessage) {
-                            Icon(Icons.Filled.Close, contentDescription = null)
+            AnimatedVisibility(
+                visible = message != null,
+                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+            ) {
+                val msg = message
+                if (msg != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (msg.isError) {
+                                MaterialTheme.colorScheme.errorContainer
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer
+                            },
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                if (msg.isError) Icons.Filled.Error else Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = if (msg.isError) {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                },
+                            )
+                            Text(
+                                msg.text,
+                                modifier = Modifier.weight(1f).padding(start = 10.dp),
+                                color = if (msg.isError) {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                },
+                            )
+                            IconButton(onClick = viewModel::clearMessage) {
+                                Icon(Icons.Filled.Close, contentDescription = null)
+                            }
                         }
                     }
                 }
             }
 
-            loadError?.let { err ->
-                Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    Text(
-                        err,
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+            AnimatedVisibility(
+                visible = loadError != null,
+                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+            ) {
+                val err = loadError
+                if (err != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Error, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                            Text(err, modifier = Modifier.padding(start = 10.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
                 }
             }
 
@@ -350,11 +429,19 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
 
             // weight(1f) is required here to avoid the same fillMaxSize overflow bug as inside each tab's content.
             Box(modifier = Modifier.weight(1f)) {
-                when (tabIndex) {
-                    0 -> DeployLogTab(serverId)
-                    1 -> DeployKeysTab(viewModel)
-                    2 -> DeployUsageTab(viewModel)
-                    else -> DeploySettingsTab(viewModel)
+                AnimatedContent(
+                    targetState = tabIndex,
+                    transitionSpec = {
+                        fadeIn(tween(220)) togetherWith fadeOut(tween(140))
+                    },
+                    label = "deploy-detail-tab",
+                ) { index ->
+                    when (index) {
+                        0 -> DeployLogTab(serverId)
+                        1 -> DeployKeysTab(viewModel)
+                        2 -> DeployUsageTab(viewModel)
+                        else -> DeploySettingsTab(viewModel)
+                    }
                 }
             }
         }
@@ -362,11 +449,19 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
 }
 
 @Composable
-private fun DeployLogTab(serverId: String) {    val logsMap by DeployManager.logs.collectAsState()
+private fun DeployLogTab(serverId: String) {
+    val logsMap by DeployManager.logs.collectAsState()
     val lines = logsMap[serverId].orEmpty()
-    LazyColumn(Modifier.fillMaxSize().padding(12.dp)) {
-        items(lines) { line ->
-            Text(line, fontFamily = FontFamily.Monospace, modifier = Modifier.fillMaxWidth())
+    SelectionContainer {
+        LazyColumn(Modifier.fillMaxSize().padding(12.dp)) {
+            items(lines) { line ->
+                Text(
+                    line,
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

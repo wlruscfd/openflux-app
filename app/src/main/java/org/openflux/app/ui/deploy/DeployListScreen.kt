@@ -1,5 +1,13 @@
 package org.openflux.app.ui.deploy
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,18 +15,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -111,7 +127,11 @@ fun DeployListScreen(onAddServer: () -> Unit, onOpenServer: (String) -> Unit) {
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if (state.selectedIds.isNotEmpty()) {
+            AnimatedVisibility(
+                visible = state.selectedIds.isNotEmpty(),
+                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -126,12 +146,16 @@ fun DeployListScreen(onAddServer: () -> Unit, onOpenServer: (String) -> Unit) {
                     }
                 }
             }
-            if (state.batchRunning) {
+            AnimatedVisibility(
+                visible = state.batchRunning,
+                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.dp)
                     Text(stringResource(R.string.deploy_batch_running, state.selectedIds.size))
                 }
             }
@@ -151,6 +175,7 @@ fun DeployListScreen(onAddServer: () -> Unit, onOpenServer: (String) -> Unit) {
                             onClick = { onOpenServer(server.id) },
                             onToggleSelected = { viewModel.toggleSelected(server.id) },
                             onDeployNow = { viewModel.deploy(server) },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -168,10 +193,19 @@ private fun DeployServerRow(
     onClick: () -> Unit,
     onToggleSelected: () -> Unit,
     onDeployNow: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val statusTint by animateColorAsState(statusColor(status), tween(220), label = "deployStatusTint")
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = if (status == DeployStatus.FAILED) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+            } else {
+                CardDefaults.cardColors().containerColor
+            },
+        ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -180,16 +214,28 @@ private fun DeployServerRow(
             Checkbox(checked = selected, onCheckedChange = { onToggleSelected() })
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                 Text(server.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(server.host, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (status == DeployStatus.RUNNING && currentStep != null) currentStep else statusLabel(status),
+                    server.host,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                    Icon(statusIcon(status), contentDescription = null, tint = statusTint, modifier = Modifier.size(14.dp))
+                    Text(
+                        if (status == DeployStatus.RUNNING && currentStep != null) currentStep else statusLabel(status),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = statusTint,
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
             }
             // A plain icon button, not a full text button, so the name/status Column keeps most of the row's width.
             if (status == DeployStatus.RUNNING) {
-                CircularProgressIndicator(modifier = Modifier.padding(horizontal = 8.dp))
+                CircularProgressIndicator(modifier = Modifier.padding(horizontal = 8.dp).size(24.dp), strokeWidth = 2.dp)
             } else {
                 IconButton(onClick = onDeployNow) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.deploy_detail_deploy_now))
@@ -200,9 +246,26 @@ private fun DeployServerRow(
 }
 
 @Composable
-private fun statusLabel(status: DeployStatus): String = when (status) {
+internal fun statusLabel(status: DeployStatus): String = when (status) {
     DeployStatus.NONE -> stringResource(R.string.deploy_status_none)
     DeployStatus.RUNNING -> stringResource(R.string.deploy_status_running)
     DeployStatus.SUCCESS -> stringResource(R.string.deploy_status_success)
     DeployStatus.FAILED -> stringResource(R.string.deploy_status_failed)
 }
+
+@Composable
+internal fun statusColor(status: DeployStatus): Color = when (status) {
+    DeployStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
+    DeployStatus.RUNNING -> MaterialTheme.colorScheme.primary
+    DeployStatus.SUCCESS -> DeploySuccessGreen
+    DeployStatus.FAILED -> MaterialTheme.colorScheme.error
+}
+
+internal fun statusIcon(status: DeployStatus) = when (status) {
+    DeployStatus.NONE -> Icons.Filled.RadioButtonUnchecked
+    DeployStatus.RUNNING -> Icons.Filled.PlayArrow
+    DeployStatus.SUCCESS -> Icons.Filled.CheckCircle
+    DeployStatus.FAILED -> Icons.Filled.Error
+}
+
+private val DeploySuccessGreen = Color(0xFF10B981)

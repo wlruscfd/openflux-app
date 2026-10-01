@@ -38,7 +38,9 @@ import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.OpenFluxApplication
 import org.openflux.app.R
 import org.openflux.app.data.CookiePushClient
+import org.openflux.app.data.CookiePushOutcome
 import org.openflux.app.data.CookiePushResult
+import org.openflux.app.data.PushRoute
 import org.openflux.app.data.ManualTransport
 import org.openflux.app.data.Profile
 import org.openflux.app.data.ProfileMode
@@ -77,23 +79,27 @@ class ProfileEditViewModel(private val repository: ProfileRepository) : ViewMode
         }
     }
 
-    fun pushCookies(profile: Profile, cookies: String, app: OpenFluxApplication) {
+    fun pushCookies(
+        profile: Profile,
+        cookies: String,
+        app: OpenFluxApplication,
+        route: PushRoute = PushRoute.DIRECT,
+        socksPort: Int = 0,
+    ) {
         if (_cookiePushBusy.value) return
         _cookiePushBusy.value = true
         _cookiePushMessage.value = null
         viewModelScope.launch {
-            val result = CookiePushClient(profile.controlUrl, profile.keyToken).push(cookies)
+            val result = CookiePushClient(profile.controlUrl, profile.keyToken, route, socksPort).push(cookies)
+            when (result) {
+                is CookiePushResult.Sent ->
+                    app.cookiePushStore.record(profile.id, CookiePushOutcome.SENT, null, route)
+                is CookiePushResult.Failed ->
+                    app.cookiePushStore.record(profile.id, CookiePushOutcome.FAILED, result.reason, route)
+            }
             _cookiePushMessage.value = when (result) {
                 is CookiePushResult.Sent -> app.getString(R.string.profile_edit_send_cookies_ok)
-                is CookiePushResult.Failed -> app.getString(
-                    when (result.reason) {
-                        PushFailure.NO_CONTROL_URL -> R.string.profile_edit_send_cookies_no_url
-                        PushFailure.NO_KEY_TOKEN -> R.string.profile_edit_send_cookies_no_token
-                        PushFailure.BAD_CONTROL_URL -> R.string.profile_edit_send_cookies_no_url
-                        PushFailure.REJECTED -> R.string.profile_edit_send_cookies_rejected
-                        PushFailure.NETWORK -> R.string.profile_edit_send_cookies_network
-                    },
-                )
+                is CookiePushResult.Failed -> app.getString(result.reason.messageRes())
             }
             _cookiePushBusy.value = false
         }
@@ -102,6 +108,18 @@ class ProfileEditViewModel(private val repository: ProfileRepository) : ViewMode
 
 // The jar is pushed for the key the profile authenticates as, so both a control URL and a key
 // token have to be present, and the provider has to be one that can be checked in a browser.
+private val cookieTimeFormatter = java.text.SimpleDateFormat("dd.MM HH:mm", java.util.Locale.getDefault())
+
+private fun formatCookieTime(millis: Long): String = cookieTimeFormatter.format(java.util.Date(millis))
+
+internal fun PushFailure.messageRes(): Int = when (this) {
+    PushFailure.NO_CONTROL_URL, PushFailure.BAD_CONTROL_URL -> R.string.profile_edit_send_cookies_no_url
+    PushFailure.NO_KEY_TOKEN -> R.string.profile_edit_send_cookies_no_token
+    PushFailure.REJECTED -> R.string.profile_edit_send_cookies_rejected
+    PushFailure.NETWORK -> R.string.profile_edit_send_cookies_network
+    PushFailure.NO_TUNNEL -> R.string.profile_edit_send_cookies_no_tunnel
+}
+
 private fun cookiePushAvailable(profile: Profile): Boolean =
     profile.controlUrl.isNotBlank() &&
         profile.keyToken.isNotBlank() &&
@@ -124,8 +142,26 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
 
     var profile by remember { mutableStateOf<Profile?>(null) }
     var cookieSheetFor by remember { mutableStateOf<Profile?>(null) }
+    var pushViaTunnel by remember { mutableStateOf(false) }
+    val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 1080)
+    val cookieRecords by app.cookiePushStore.records.collectAsState()
     val cookiePushMessage by viewModel.cookiePushMessage.collectAsState()
     val cookiePushBusy by viewModel.cookiePushBusy.collectAsState()
+
+    val cookieStatusLine = remember(cookieRecords, profile) {
+        { id: String ->
+            val record = cookieRecords[id] ?: return@remember null
+            when (record.outcome) {
+                CookiePushOutcome.SENT -> app.getString(R.string.profile_edit_cookies_sent_at, formatCookieTime(record.atMillis))
+                CookiePushOutcome.FAILED -> app.getString(
+                    R.string.profile_edit_cookies_failed_at,
+                    formatCookieTime(record.atMillis),
+                    record.reason?.let { app.getString(it.messageRes()) } ?: "",
+                )
+                CookiePushOutcome.NONE -> null
+            }
+        }
+    }
 
     // Keyed on profileId + importedProfile so this only reloads on navigation, not every recomposition.
     LaunchedEffect(profileId, importedProfile) {
@@ -286,12 +322,6 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                             label = { Text(stringResource(R.string.profile_edit_transport_boards)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
-                        FilterChip(
-                            selected = current.manualTransport == ManualTransport.MTS,
-                            onClick = { profile = current.copy(manualTransport = ManualTransport.MTS) },
-                            label = { Text(stringResource(R.string.profile_edit_transport_mts)) },
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
                     }
                     when (current.manualTransport) {
                         ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS -> {
@@ -373,15 +403,49 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
             }
 
             if (cookiePushAvailable(current)) {
-                OutlinedButton(
-                    onClick = { cookieSheetFor = current },
+                Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                ) { Text(stringResource(R.string.profile_edit_send_cookies)) }
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    androidx.compose.material3.Switch(
+                        checked = pushViaTunnel,
+                        onCheckedChange = { pushViaTunnel = it },
+                    )
+                    Text(
+                        stringResource(R.string.profile_edit_send_cookies_via_tunnel),
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = 12.dp),
+                    )
+                }
                 Text(
-                    stringResource(R.string.profile_edit_send_cookies_hint),
+                    stringResource(
+                        if (pushViaTunnel) R.string.profile_edit_send_cookies_via_tunnel_hint
+                        else R.string.profile_edit_send_cookies_hint,
+                    ),
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )
+
+                val route = if (pushViaTunnel) PushRoute.VIA_TUNNEL else PushRoute.DIRECT
+                OutlinedButton(
+                    onClick = { cookieSheetFor = current },
+                    enabled = !cookiePushBusy,
+                    modifier = Modifier.padding(top = 12.dp),
+                ) {
+                    Text(
+                        if (cookiePushBusy) stringResource(R.string.profile_edit_send_cookies_sending)
+                        else stringResource(R.string.profile_edit_send_cookies),
+                    )
+                }
+
+                cookieStatusLine(current.id)?.let {
+                    Text(
+                        it,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
             }
 
             Row(modifier = Modifier.padding(top = 24.dp)) {
@@ -411,7 +475,13 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
                 viewModel.clearCookiePushMessage()
             },
             onSolved = { cookies ->
-                viewModel.pushCookies(target, cookies, app)
+                viewModel.pushCookies(
+                    profile = target,
+                    cookies = cookies,
+                    app = app,
+                    route = if (pushViaTunnel) PushRoute.VIA_TUNNEL else PushRoute.DIRECT,
+                    socksPort = socks5Port,
+                )
                 cookieSheetFor = null
             },
         )

@@ -1,5 +1,10 @@
 package org.openflux.app.data
 
+// Stored as activeProfileId when the balancer is picked instead of a real profile - never a real
+// row id (ProfileRepository ids are Room-generated UUIDs), so lookups for it always miss and
+// callers branch on this constant first.
+const val BALANCER_PROFILE_ID = "__balancer__"
+
 enum class ProfileMode { KEY, MANUAL }
 
 // Despite the name, this is set for both profile modes - see ProfileEditScreen.
@@ -24,6 +29,16 @@ fun parseTransportName(name: String): ManualTransport = when (name) {
     "boards" -> ManualTransport.BOARDS
     "mts" -> ManualTransport.MTS
     else -> ManualTransport.YANDEX
+}
+
+fun transportLabel(t: ManualTransport): String = when (t) {
+    ManualTransport.YANDEX -> "Yandex"
+    ManualTransport.VOLGA -> "Volga"
+    ManualTransport.MAX -> "MAX"
+    ManualTransport.YANDEX_MULTISTREAM -> "Yandex multi"
+    ManualTransport.MAILRU -> "Mail.ru"
+    ManualTransport.BOARDS -> "Boards"
+    ManualTransport.MTS -> "MTS"
 }
 
 // [ProfileEntity]'s non-secret fields joined with the secret material [SecretsStore] holds for the same id.

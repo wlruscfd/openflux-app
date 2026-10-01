@@ -25,7 +25,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -62,9 +64,13 @@ import kotlinx.coroutines.launch
 import mobile.Mobile
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
+import org.openflux.app.data.BALANCER_PROFILE_ID
+import org.openflux.app.data.ConnectionMode
 import org.openflux.app.data.Profile
+import org.openflux.app.data.ProfileBalancer
 import org.openflux.app.data.ProfileRepository
 import org.openflux.app.data.SettingsRepository
+import org.openflux.app.data.transportLabel
 import org.openflux.app.vpn.OpenFluxSocks5Service
 import org.openflux.app.vpn.OpenFluxVpnService
 import org.openflux.app.vpn.TunnelStatus
@@ -112,23 +118,57 @@ fun HomeScreen(
 
     val homeState by viewModel.state.collectAsState()
     val activeProfile = homeState.activeProfile
+    val isBalancerSelected = homeState.activeProfileId == BALANCER_PROFILE_ID
+    val connectionMode by app.settingsRepository.connectionMode.collectAsState(initial = ConnectionMode.VPN)
+    val health by app.profileHealthStore.health.collectAsState()
+    val lastConnectedProfileId by app.settingsRepository.lastConnectedProfileId.collectAsState(initial = null)
     val status by OpenFluxVpnService.callback.status.collectAsState()
     val channelReady by OpenFluxVpnService.callback.channelReady.collectAsState()
     val stats by OpenFluxVpnService.callback.stats.collectAsState()
     val lastRetryDetail by OpenFluxVpnService.callback.lastRetryDetail.collectAsState()
-    val connected = status is TunnelStatus.Connected || status is TunnelStatus.Connecting
-    // A green "connected" button over a channel that never came up reads as a working tunnel,
-    // so anything short of channelReady stays in the connecting state.
-    val channelUp = status is TunnelStatus.Connected && channelReady
+
+    // With the balancer selected, connecting goes to whichever profile has been behaving, not a
+    // fixed pick. A manual pick still wins - the balancer only chooses when the tunnel is down, so
+    // it never overrides an active connection.
+    val connectTarget = remember(isBalancerSelected, health, homeState.profiles, homeState.activeProfileId, status) {
+        if (isBalancerSelected && status !is TunnelStatus.Connected && status !is TunnelStatus.Connecting) {
+            ProfileBalancer.pick(homeState.profiles, health, app.profileHealthStore::isInCooldown)
+        } else {
+            activeProfile
+        }
+    }
+    // What the balancer is actually running right now, as opposed to what it would pick if asked
+    // again this instant - health can shift mid-connection without that meaning a different
+    // profile is suddenly the one carrying traffic.
+    val balancerRunningProfile = remember(isBalancerSelected, lastConnectedProfileId, homeState.profiles) {
+        if (isBalancerSelected) homeState.profiles.find { it.id == lastConnectedProfileId } else null
+    }
+    val connectivityOk by OpenFluxVpnService.callback.connectivityOk.collectAsState()
+    val socks5Status by OpenFluxSocks5Service.callback.status.collectAsState()
+    val socks5ChannelReady by OpenFluxSocks5Service.callback.channelReady.collectAsState()
+    val socks5Stats by OpenFluxSocks5Service.callback.stats.collectAsState()
+    val socks5RetryDetail by OpenFluxSocks5Service.callback.lastRetryDetail.collectAsState()
+    val socks5ConnectivityOk by OpenFluxSocks5Service.callback.connectivityOk.collectAsState()
+
+    // The two modes are separate services with separate lifetimes, so the button has to answer
+    // for whichever one is actually running. Reading only the VPN service left a SOCKS5 tunnel
+    // un-stoppable from the button: the tap asked a service that was not running to disconnect.
+    val vpnActive = status is TunnelStatus.Connected || status is TunnelStatus.Connecting
+    val socks5Active = socks5Status is TunnelStatus.Connected || socks5Status is TunnelStatus.Connecting
+    val anyActive = vpnActive || socks5Active
+    val channelUp = (status is TunnelStatus.Connected && channelReady) ||
+        (socks5Status is TunnelStatus.Connected && socks5ChannelReady)
+    val activeStatus = if (socks5Active) socks5Status else status
+    val activeChannelReady = if (socks5Active) socks5ChannelReady else channelReady
     val buttonState = when {
         channelUp -> ConnectionButtonState.Connected
-        status is TunnelStatus.Connected || status is TunnelStatus.Connecting -> ConnectionButtonState.Connecting
+        // The interface/proxy is up but the covert channel hasn't finished its own handshake yet -
+        // a visually distinct state from "just started dialing", not just a slower Connecting.
+        activeStatus is TunnelStatus.Connected && !activeChannelReady -> ConnectionButtonState.Establishing
+        anyActive -> ConnectionButtonState.Connecting
         else -> ConnectionButtonState.Idle
     }
 
-    // Mutually exclusive with VPN mode at the Go layer, so the button below is disabled while the other is active.
-    val socks5Status by OpenFluxSocks5Service.callback.status.collectAsState()
-    val socks5Active = socks5Status is TunnelStatus.Connected || socks5Status is TunnelStatus.Connecting
     val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 1080)
 
     // Only one of these is ever non-null at a time in practice - VPN and SOCKS5 modes are mutually exclusive - but reading both keeps this screen agnostic to which one is active.
@@ -155,15 +195,23 @@ fun HomeScreen(
             ) {
                 ConnectionButton(
                     state = buttonState,
-                    label = statusLabel(status, channelReady, lastRetryDetail, captchaPending, captchaDialogShowing),
+                    label = statusLabel(
+                        if (socks5Active) socks5Status else status,
+                        if (socks5Active) socks5ChannelReady else channelReady,
+                        if (socks5Active) socks5RetryDetail else lastRetryDetail,
+                        captchaPending,
+                        captchaDialogShowing,
+                        if (socks5Active) socks5ConnectivityOk else connectivityOk,
+                    ),
                     // Starting one mode now stops the other, so neither button has to be disabled
                     // for the other - that coupling is what used to leave both unusable.
-                    enabled = buttonState != ConnectionButtonState.Idle || activeProfile != null,
+                    enabled = buttonState != ConnectionButtonState.Idle || connectTarget != null,
                     onClick = {
-                        if (connected) {
-                            onDisconnectRequested()
-                        } else {
-                            activeProfile?.let { onConnectRequested(it.id) }
+                        when {
+                            socks5Active -> onSocks5StopRequested()
+                            vpnActive -> onDisconnectRequested()
+                            connectionMode == ConnectionMode.SOCKS5 -> connectTarget?.let { onSocks5Requested(it.id) }
+                            else -> connectTarget?.let { onConnectRequested(it.id) }
                         }
                     },
                 )
@@ -184,18 +232,15 @@ fun HomeScreen(
                     modifier = Modifier.height(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (connected) {
-                        TrafficLine(sent = stats.bytesSent, received = stats.bytesReceived)
+                    if (anyActive) {
+                        val live = if (socks5Active) socks5Stats else stats
+                        TrafficLine(sent = live.bytesSent, received = live.bytesReceived)
                     }
                 }
 
-                Socks5Row(
-                    active = socks5Active,
-                    port = socks5Port,
-                    enabled = activeProfile != null,
-                    onStart = { activeProfile?.let { onSocks5Requested(it.id) } },
-                    onStop = onSocks5StopRequested,
-                )
+                if (connectionMode == ConnectionMode.SOCKS5 && socks5Active) {
+                    Socks5Hint(port = socks5Port)
+                }
             }
         }
 
@@ -219,6 +264,13 @@ fun HomeScreen(
             ) {
                 Text(
                     text = when {
+                        isBalancerSelected && anyActive && balancerRunningProfile != null ->
+                            stringResource(R.string.balancer_profile_name) + " · " +
+                                stringResource(R.string.balancer_connecting_via, balancerRunningProfile.name)
+                        isBalancerSelected && anyActive ->
+                            stringResource(R.string.balancer_profile_name) + " · " +
+                                stringResource(R.string.balancer_no_target)
+                        isBalancerSelected -> stringResource(R.string.balancer_profile_name)
                         activeProfile != null -> activeProfile.name
                         homeState.profiles.isEmpty() -> stringResource(R.string.profiles_add)
                         else -> stringResource(R.string.home_profile_selector_select)
@@ -240,6 +292,7 @@ fun HomeScreen(
                 ProfilePickerSheet(
                     profiles = homeState.profiles,
                     activeProfileId = homeState.activeProfileId,
+                    showBalancer = homeState.profiles.size > 1,
                     // Commits the selection only; the sheet dismisses itself once its checkmark animation finishes.
                     onSelect = { viewModel.setActive(it) },
                     onDismiss = { sheetOpen = false },
@@ -270,6 +323,7 @@ fun HomeScreen(
 private fun ProfilePickerSheet(
     profiles: List<Profile>,
     activeProfileId: String?,
+    showBalancer: Boolean,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -291,6 +345,68 @@ private fun ProfilePickerSheet(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
+
+            if (showBalancer) {
+                val balancerActive = (pendingId ?: activeProfileId) == BALANCER_PROFILE_ID
+                val balancerBackground by animateColorAsState(
+                    targetValue = if (balancerActive) {
+                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    } else {
+                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.18f)
+                    },
+                    label = "balancerRowBackground",
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(balancerBackground)
+                        .clickable {
+                            if (activeProfileId == BALANCER_PROFILE_ID) {
+                                onDismiss()
+                                return@clickable
+                            }
+                            pendingId = BALANCER_PROFILE_ID
+                            onSelect(BALANCER_PROFILE_ID)
+                            scope.launch {
+                                delay(260)
+                                onDismiss()
+                            }
+                        }
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(
+                            text = stringResource(R.string.balancer_profile_name),
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                        Text(
+                            text = stringResource(R.string.balancer_profile_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = balancerActive,
+                        enter = scaleIn() + fadeIn(),
+                        exit = scaleOut() + fadeOut(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                }
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+            }
 
             profiles.forEach { profile ->
                 val active = profile.id == (pendingId ?: activeProfileId)
@@ -326,6 +442,11 @@ private fun ProfilePickerSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            text = stringResource(R.string.profile_transport_label) + ": " + transportLabel(profile.manualTransport),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         val badgeAlpha by animateFloatAsState(if (active) 1f else 0f, label = "profileBadgeAlpha")
                         Text(
                             text = stringResource(R.string.profiles_active_badge),
@@ -361,6 +482,7 @@ private fun statusLabel(
     lastRetryDetail: String?,
     captchaPending: Boolean,
     captchaDialogShowing: Boolean,
+    connectivityOk: Boolean? = null,
 ): String = when {
     status is TunnelStatus.Stopped -> stringResource(R.string.home_status_stopped)
     // A doc_url created in Yandex's newer editor fails every retry with the same "balancer_url missing".
@@ -372,6 +494,7 @@ private fun statusLabel(
     captchaPending -> stringResource(R.string.home_status_captcha_open)
     status is TunnelStatus.Connecting -> stringResource(R.string.home_status_connecting)
     status is TunnelStatus.Connected && !channelReady -> stringResource(R.string.home_status_connecting_channel)
+    status is TunnelStatus.Connected && connectivityOk == false -> stringResource(R.string.home_status_one_way)
     status is TunnelStatus.Connected -> stringResource(R.string.home_status_connected)
     else -> ""
 }
@@ -389,35 +512,19 @@ private fun formatBytes(bytes: Long): String {
 
 // Deliberately not styled like the primary ConnectionButton: this is the alternative path, not the default one.
 @Composable
-private fun Socks5Row(
-    active: Boolean,
-    port: Int,
-    enabled: Boolean,
-    onStart: () -> Unit,
-    onStop: () -> Unit,
-) {
+private fun Socks5Hint(port: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(16.dp))
-        TextButton(
-            onClick = { if (active) onStop() else onStart() },
-            enabled = active || enabled,
-        ) {
-            Text(
-                if (active) {
-                    stringResource(R.string.home_socks5_running, "127.0.0.1:$port")
-                } else {
-                    stringResource(R.string.home_socks5_start)
-                },
-            )
-        }
-        if (active) {
-            Text(
-                text = stringResource(R.string.home_socks5_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 32.dp),
-            )
-        }
+        Text(
+            text = stringResource(R.string.home_socks5_running, "127.0.0.1:$port"),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(R.string.home_socks5_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
+        )
     }
 }
 

@@ -1,5 +1,10 @@
 package org.openflux.app.ui.settings
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -151,52 +158,65 @@ fun SiteSplitTunnelScreen(onDone: () -> Unit) {
                 }
             }
 
-            if (mode != SplitTunnelMode.OFF) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        label = { Text(stringResource(R.string.site_split_tunnel_input_label)) },
-                        placeholder = { Text(stringResource(R.string.site_split_tunnel_input_placeholder)) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(
-                        onClick = {
-                            viewModel.addSite(input)
-                            input = ""
-                        },
-                        enabled = normalizeSite(input) != null,
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.site_split_tunnel_add))
-                    }
-                }
+            AnimatedContent(
+                targetState = mode != SplitTunnelMode.OFF,
+                transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(140)) },
+                label = "site-split-tunnel-mode",
+                modifier = Modifier.weight(1f),
+            ) { enabled ->
+                if (enabled) {
+                    Column(Modifier.fillMaxSize()) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedTextField(
+                                value = input,
+                                onValueChange = { input = it },
+                                label = { Text(stringResource(R.string.site_split_tunnel_input_label)) },
+                                placeholder = { Text(stringResource(R.string.site_split_tunnel_input_placeholder)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(
+                                onClick = {
+                                    viewModel.addSite(input)
+                                    input = ""
+                                },
+                                enabled = normalizeSite(input) != null,
+                            ) {
+                                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.site_split_tunnel_add))
+                            }
+                        }
 
-                if (sites.isEmpty()) {
+                        if (sites.isEmpty()) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    stringResource(R.string.site_split_tunnel_empty),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(32.dp),
+                                )
+                            }
+                        } else {
+                            val sortedSites = sites.sorted()
+                            LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
+                                items(sortedSites, key = { it }) { site ->
+                                    SiteRow(
+                                        site = site,
+                                        onRemove = { viewModel.removeSite(site) },
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            stringResource(R.string.site_split_tunnel_empty),
+                            stringResource(R.string.site_split_tunnel_off_hint),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(32.dp),
                         )
                     }
-                } else {
-                    val sortedSites = sites.sorted()
-                    LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
-                        items(sortedSites, key = { it }) { site ->
-                            SiteRow(site = site, onRemove = { viewModel.removeSite(site) })
-                        }
-                    }
-                }
-            } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        stringResource(R.string.site_split_tunnel_off_hint),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(32.dp),
-                    )
                 }
             }
         }
@@ -204,23 +224,31 @@ fun SiteSplitTunnelScreen(onDone: () -> Unit) {
 }
 
 @Composable
-private fun SiteRow(site: String, onRemove: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            site,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        IconButton(onClick = onRemove) {
+private fun SiteRow(site: String, onRemove: () -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(
-                Icons.Filled.Delete,
-                contentDescription = R.string.site_split_tunnel_remove.toString(),
+                Icons.Filled.Language,
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 10.dp),
             )
+            Text(
+                site,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onRemove) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = stringResource(R.string.site_split_tunnel_remove),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
