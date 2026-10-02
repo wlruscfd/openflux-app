@@ -118,6 +118,8 @@ internal fun PushFailure.messageRes(): Int = when (this) {
     PushFailure.REJECTED -> R.string.profile_edit_send_cookies_rejected
     PushFailure.NETWORK -> R.string.profile_edit_send_cookies_network
     PushFailure.NO_TUNNEL -> R.string.profile_edit_send_cookies_no_tunnel
+    PushFailure.RATE_LIMITED -> R.string.profile_edit_send_cookies_rate_limited
+    PushFailure.UNKNOWN_KEY -> R.string.profile_edit_send_cookies_unknown_key
 }
 
 private fun cookiePushAvailable(profile: Profile): Boolean =

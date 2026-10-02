@@ -298,6 +298,8 @@
     <string name="profile_edit_send_cookies_sending">Отправка...</string>
     <string name="profile_edit_cookies_sent_at">Куки отправлены на exit-узел %1$s</string>
     <string name="profile_edit_cookies_failed_at">Последняя отправка кук провалилась (%1$s): %2$s</string>
+    <string name="profile_edit_send_cookies_rate_limited">Controlplane ограничивает частоту запросов - подождите минуту и повторите.</string>
+    <string name="profile_edit_send_cookies_unknown_key">Controlplane не знает этот токен ключа - проверьте, что Control URL и ключ относятся к одному серверу.</string>
     <string name="profile_edit_send_cookies_no_tunnel">Нет туннеля для маршрута - сначала запусти SOCKS5 профиля</string>
     <string name="profiles_cookies_badge_sent">куки отправлены</string>
     <string name="profiles_cookies_badge_failed">отправка кук провалилась</string>

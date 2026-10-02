@@ -16,7 +16,7 @@ sealed class CookiePushResult {
     data class Failed(val reason: PushFailure) : CookiePushResult()
 }
 
-enum class PushFailure { NO_CONTROL_URL, NO_KEY_TOKEN, BAD_CONTROL_URL, REJECTED, NETWORK, NO_TUNNEL }
+enum class PushFailure { NO_CONTROL_URL, NO_KEY_TOKEN, BAD_CONTROL_URL, REJECTED, NETWORK, NO_TUNNEL, RATE_LIMITED, UNKNOWN_KEY }
 
 enum class PushRoute {
     DIRECT,
@@ -62,8 +62,12 @@ class CookiePushClient(
         runCatching { client().newCall(request).execute() }.fold(
             onSuccess = { response ->
                 response.use {
-                    if (response.isSuccessful) CookiePushResult.Sent
-                    else CookiePushResult.Failed(PushFailure.REJECTED)
+                    when {
+                        response.isSuccessful -> CookiePushResult.Sent
+                        response.code == 429 -> CookiePushResult.Failed(PushFailure.RATE_LIMITED)
+                        response.code == 401 || response.code == 404 -> CookiePushResult.Failed(PushFailure.UNKNOWN_KEY)
+                        else -> CookiePushResult.Failed(PushFailure.REJECTED)
+                    }
                 }
             },
             onFailure = { CookiePushResult.Failed(PushFailure.NETWORK) },

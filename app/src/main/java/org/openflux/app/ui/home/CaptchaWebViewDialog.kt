@@ -48,6 +48,18 @@ import org.openflux.app.R
 
 private const val POLL_INTERVAL_MS = 500L
 
+private fun collectCookieJar(vararg jars: String?): String {
+    val byName = LinkedHashMap<String, String>()
+    for (jar in jars) {
+        for (pair in jar.orEmpty().split(";")) {
+            val trimmed = pair.trim()
+            val name = trimmed.substringBefore('=', "")
+            if (name.isNotEmpty()) byName[name] = trimmed
+        }
+    }
+    return byName.values.joinToString("; ")
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun CaptchaWebViewDialog(
@@ -88,10 +100,10 @@ fun CaptchaWebViewDialog(
             if (solved) {
                 challengeSolved = true
                 val currentUrl = webView.url
-                val cookies = listOfNotNull(
+                val cookies = collectCookieJar(
                     CookieManager.getInstance().getCookie(docUrl),
                     currentUrl?.let { CookieManager.getInstance().getCookie(it) },
-                ).joinToString("; ")
+                )
                 if (cookies.isNotBlank()) {
                     onSolved(cookies)
                     return@LaunchedEffect
@@ -157,10 +169,10 @@ fun CaptchaWebViewDialog(
                     onClick = {
                         if (!challengeSolved) return@TextButton
                         val currentUrl = webView.url
-                        val cookies = listOfNotNull(
+                        val cookies = collectCookieJar(
                             CookieManager.getInstance().getCookie(docUrl),
                             currentUrl?.let { CookieManager.getInstance().getCookie(it) },
-                        ).joinToString("; ")
+                        )
                         if (cookies.isNotBlank()) {
                             onSolved(cookies)
                         }

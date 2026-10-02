@@ -301,6 +301,8 @@
     <string name="profile_edit_send_cookies_sending">Sending...</string>
     <string name="profile_edit_cookies_sent_at">Cookies were sent to the exit node at %1$s</string>
     <string name="profile_edit_cookies_failed_at">Last cookie send failed (%1$s): %2$s</string>
+    <string name="profile_edit_send_cookies_rate_limited">The controlplane is rate-limiting requests - wait a minute and try again.</string>
+    <string name="profile_edit_send_cookies_unknown_key">The controlplane does not recognize this key token - check that the control URL and key belong to the same server.</string>
     <string name="profile_edit_send_cookies_no_tunnel">No tunnel to route through - start a profile\'s SOCKS5 proxy first</string>
     <string name="profiles_cookies_badge_sent">cookies sent</string>
     <string name="profiles_cookies_badge_failed">cookie send failed</string>
