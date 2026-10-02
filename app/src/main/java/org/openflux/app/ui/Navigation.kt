@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,12 +34,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import mobile.Mobile
 import org.openflux.app.R
 import org.openflux.app.data.Profile
 import org.openflux.app.data.ProfileDeepLink
 import org.openflux.app.ui.deploy.DeployListScreen
 import org.openflux.app.ui.deploy.DeployServerDetailScreen
 import org.openflux.app.ui.deploy.DeployServerEditScreen
+import org.openflux.app.ui.home.CaptchaWebViewDialog
 import org.openflux.app.ui.home.HomeScreen
 import org.openflux.app.ui.logs.TunnelLogsScreen
 import org.openflux.app.ui.profiles.ProfileEditScreen
@@ -47,6 +50,8 @@ import org.openflux.app.ui.profiles.QrScanScreen
 import org.openflux.app.ui.settings.SettingsScreen
 import org.openflux.app.ui.settings.SiteSplitTunnelScreen
 import org.openflux.app.ui.settings.SplitTunnelScreen
+import org.openflux.app.vpn.OpenFluxSocks5Service
+import org.openflux.app.vpn.OpenFluxVpnService
 
 private sealed class Destination(val route: String, val labelRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     data object Home : Destination("home", R.string.nav_home, Icons.Filled.Home)
@@ -97,6 +102,9 @@ fun OpenFluxNavHost(
     val tabs = listOf(Destination.Home, Destination.Logs, Destination.Profiles, Destination.Deploy, Destination.Settings)
 
     var importedProfile by remember { mutableStateOf<Profile?>(null) }
+    val vpnCaptchaUrl by OpenFluxVpnService.callback.captchaDocUrl.collectAsState()
+    val socks5CaptchaUrl by OpenFluxSocks5Service.callback.captchaDocUrl.collectAsState()
+    val captchaUrl = vpnCaptchaUrl ?: socks5CaptchaUrl
 
     LaunchedEffect(deepLinkUri) {
         val uri = deepLinkUri ?: return@LaunchedEffect
@@ -257,6 +265,22 @@ fun OpenFluxNavHost(
             composable(SITE_SPLIT_TUNNEL_ROUTE) {
                 SiteSplitTunnelScreen(onDone = { navController.popBackStack() })
             }
+        }
+
+        if (captchaUrl != null) {
+            CaptchaWebViewDialog(
+                docUrl = captchaUrl,
+                onDismiss = {
+                    OpenFluxVpnService.callback.dismissCaptchaPrompt()
+                    OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
+                },
+                onSolved = { cookies ->
+                    if (runCatching { Mobile.provideCaptchaCookies(cookies) }.isSuccess) {
+                        OpenFluxVpnService.callback.captchaSolved()
+                        OpenFluxSocks5Service.callback.captchaSolved()
+                    }
+                },
+            )
         }
     }
 }

@@ -1,0 +1,94 @@
+name: Build Test APK Prerelease
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-prerelease:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app repository
+        uses: actions/checkout@v4
+
+      - name: Checkout openflux-server repository
+        uses: actions/checkout@v4
+        with:
+          repository: wlruscfd/openflux-server
+          path: openflux-server
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.2.12479018"
+
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          gomobile init
+
+      - name: Build openflux AAR
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.2.12479018
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/app/libs"
+          cd "$GITHUB_WORKSPACE/openflux-server"
+          bash ./build_android_aar.sh "$GITHUB_WORKSPACE/app/libs"
+
+      - name: Generate random release keystore
+        run: |
+          mkdir -p keystore
+          STORE_PASSWORD="$(openssl rand -hex 16)"
+          KEY_PASSWORD="$STORE_PASSWORD"
+          KEY_ALIAS="test$(openssl rand -hex 6)"
+          keytool -genkeypair -storetype PKCS12 -keystore keystore/release.jks -alias "$KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 3650 -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" -dname "CN=OpenFlux Test,O=OpenFlux,C=US"
+          cat > keystore/keystore.properties <<EOF
+          storeFile=keystore/release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build release APK
+        run: ./gradlew :app:assembleRelease --console=plain
+
+      - name: Prepare release metadata
+        run: |
+          TS="$(date -u +'%Y%m%d-%H%M%S')"
+          echo "RELEASE_TAG=test-release-$TS-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=Test release $TS" >> "$GITHUB_ENV"
+
+      - name: Prepare APK artifact
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/openflux-test-release.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openflux-test-release-apk
+          path: app/build/outputs/apk/release/openflux-test-release.apk
+
+      - name: Create prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: true
+          body: |
+            Это тест релиз.
+          files: app/build/outputs/apk/release/openflux-test-release.apk
