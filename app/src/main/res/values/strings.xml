@@ -154,6 +154,19 @@
     <string name="deploy_edit_run_node_here">Also run this exit node on this server</string>
     <string name="deploy_edit_save">Save</string>
     <string name="deploy_edit_cancel">Cancel</string>
+    <string name="deploy_problem_host">The server address is empty: open the server settings and fill it in.</string>
+    <string name="deploy_problem_port">The SSH port must be between 1 and 65535.</string>
+    <string name="deploy_problem_username">The SSH user is empty.</string>
+    <string name="deploy_problem_password">The SSH password is empty.</string>
+    <string name="deploy_problem_key">The SSH private key is empty.</string>
+    <string name="deploy_problem_domain">Domain mode needs a domain that already points at this server.</string>
+    <string name="deploy_problem_email">Domain mode needs an email for the Let\'s Encrypt certificate.</string>
+    <string name="deploy_problem_repo">The server repository URL is empty.</string>
+    <string name="deploy_problem_node_name">The exit node name is empty.</string>
+    <string name="deploy_node_missing_short">Deployed, but the exit node token is missing</string>
+    <string name="deploy_node_missing_banner">The panel is up, but the exit node was not registered or its token did not come back, so no traffic will pass. Deploy again; if it repeats, open Settings and register the node.</string>
+    <string name="deploy_edit_forget_host_key">Forget the saved host key</string>
+    <string name="deploy_edit_host_key_saved">Host key is pinned: %1$s</string>
     <string name="deploy_edit_delete">Delete server</string>
 
     <string name="deploy_detail_deploy_now">Deploy now</string>

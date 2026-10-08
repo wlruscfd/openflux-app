@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +55,7 @@ fun DeployUsageTab(viewModel: DeployServerDetailViewModel) {
     val keys by viewModel.keys.collectAsState()
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(12.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -13,14 +13,28 @@ class DeployServerRepository(
     fun observeAll(): Flow<List<DeployServer>> =
         dao.observeAll().map { entities -> entities.map { it.toDomain(secrets.load(it.id)) } }
 
+    suspend fun getAll(): List<DeployServer> =
+        dao.getAll().map { it.toDomain(secrets.load(it.id)) }
+
     suspend fun getById(id: String): DeployServer? =
         dao.getById(id)?.let { it.toDomain(secrets.load(it.id)) }
 
     // Admin token and DB password are generated once, on first save, and kept stable across later edits.
-    suspend fun save(server: DeployServer): DeployServer {
+    suspend fun save(raw: DeployServer): DeployServer {
+        val server = raw.copy(
+            name = raw.name.trim(),
+            host = raw.host.trim(),
+            username = raw.username.trim(),
+            domain = raw.domain.trim(),
+            email = raw.email.trim(),
+            repoUrl = raw.repoUrl.trim(),
+            gitRef = raw.gitRef.trim(),
+            nodeName = raw.nodeName.trim(),
+        )
         val id = server.id.ifBlank { UUID.randomUUID().toString() }
         val existing = if (server.id.isBlank()) null else dao.getById(id)
         val existingSecrets = existing?.let { secrets.load(id) }
+        val sameEndpoint = existing != null && existing.host == server.host && existing.port == server.port
 
         val adminToken = server.adminToken.ifBlank { existingSecrets?.adminToken?.ifBlank { null } ?: randomHex(32) }
         val dbPassword = server.dbPassword.ifBlank { existingSecrets?.dbPassword?.ifBlank { null } ?: randomHex(24) }
@@ -43,7 +57,7 @@ class DeployServerRepository(
                 nodeName = server.nodeName,
                 nodeMaxKeys = server.nodeMaxKeys,
                 runNodeHere = server.runNodeHere,
-                knownHostKeyFingerprint = server.knownHostKeyFingerprint,
+                knownHostKeyFingerprint = if (sameEndpoint) server.knownHostKeyFingerprint else "",
                 lastDeployStatus = existing?.lastDeployStatus ?: "",
                 lastDeployAt = existing?.lastDeployAt ?: 0,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
@@ -66,6 +80,10 @@ class DeployServerRepository(
     suspend fun delete(id: String) {
         dao.deleteById(id)
         secrets.delete(id)
+    }
+
+    suspend fun recordDeployStarted(id: String) {
+        dao.recordDeployStatus(id, DeployStatus.RUNNING.name.lowercase(), System.currentTimeMillis())
     }
 
     suspend fun recordDeployResult(id: String, status: DeployStatus, hostKeyFingerprint: String) {
@@ -125,7 +143,8 @@ fun DeployServer.toSshTargetJson(): String = JSONObject().apply {
 }.toString()
 
 // Builds the JSON the `mobile` Go package's Deploy expects for its opts argument (see mobile/deploy.go).
-fun DeployServer.toDeployOptionsJson(): String = JSONObject().apply {
+fun DeployServer.toDeployOptionsJson(attachOnly: Boolean = false): String = JSONObject().apply {
+    put("attach_only", attachOnly)
     put("deploy_script_url", deployScriptUrl)
     put("repo_url", repoUrl)
     put("git_ref", gitRef)

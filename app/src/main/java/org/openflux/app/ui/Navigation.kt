@@ -7,6 +7,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -84,6 +89,7 @@ private const val PUSH_SLIDE_MS = 280
 private const val TAB_SCALE_IN_START = 0.97f
 private const val TAB_SCALE_OUT_END = 1.02f
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OpenFluxNavHost(
     onConnectRequested: (String) -> Unit,
@@ -107,11 +113,14 @@ fun OpenFluxNavHost(
         onDeepLinkHandled()
     }
 
+    val imeVisible = WindowInsets.isImeVisible
+
     Scaffold(
+        modifier = androidx.compose.ui.Modifier.imePadding(),
         bottomBar = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
-            NavigationBar {
+            if (!imeVisible) NavigationBar {
                 tabs.forEach { tab ->
                     val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
                     NavigationBarItem(
@@ -139,7 +148,7 @@ fun OpenFluxNavHost(
         NavHost(
             navController = navController,
             startDestination = Destination.Home.route,
-            modifier = androidx.compose.ui.Modifier.padding(padding),
+            modifier = androidx.compose.ui.Modifier.padding(padding).consumeWindowInsets(padding),
             enterTransition = {
                 if (isTabSwitch()) {
                     fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))

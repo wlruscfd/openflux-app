@@ -195,7 +195,12 @@ private fun DeployServerRow(
     onDeployNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statusTint by animateColorAsState(statusColor(status), tween(220), label = "deployStatusTint")
+    val nodeMissing = status == DeployStatus.SUCCESS && server.nodeTokenMissing
+    val statusTint by animateColorAsState(
+        if (nodeMissing) MaterialTheme.colorScheme.error else statusColor(status),
+        tween(220),
+        label = "deployStatusTint",
+    )
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         onClick = onClick,
@@ -222,9 +227,18 @@ private fun DeployServerRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
-                    Icon(statusIcon(status), contentDescription = null, tint = statusTint, modifier = Modifier.size(14.dp))
+                    Icon(
+                        if (nodeMissing) Icons.Filled.Error else statusIcon(status),
+                        contentDescription = null,
+                        tint = statusTint,
+                        modifier = Modifier.size(14.dp),
+                    )
                     Text(
-                        if (status == DeployStatus.RUNNING && currentStep != null) currentStep else statusLabel(status),
+                        when {
+                            status == DeployStatus.RUNNING && currentStep != null -> currentStep
+                            nodeMissing -> stringResource(R.string.deploy_node_missing_short)
+                            else -> statusLabel(status)
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.labelSmall,

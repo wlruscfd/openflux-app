@@ -6,10 +6,10 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +44,7 @@ import org.openflux.app.R
 import org.openflux.app.data.AdminKey
 
 // One LazyColumn for the whole tab: two stacked fillMaxSize() containers both claim full height and hide content.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
     val keys by viewModel.keys.collectAsState()
@@ -69,8 +70,9 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                         label = { Text(stringResource(R.string.deploy_keys_label)) },
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp),
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         FilterChip(
                             selected = transport == "yandex",
@@ -81,25 +83,21 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                             selected = transport == "volga",
                             onClick = { transport = "volga" },
                             label = { Text(stringResource(R.string.profile_edit_transport_volga)) },
-                            modifier = Modifier.padding(start = 8.dp),
                         )
                         FilterChip(
                             selected = transport == "mailru",
                             onClick = { transport = "mailru" },
                             label = { Text(stringResource(R.string.profile_edit_transport_mailru)) },
-                            modifier = Modifier.padding(start = 8.dp),
                         )
                         FilterChip(
                             selected = transport == "boards",
                             onClick = { transport = "boards" },
                             label = { Text(stringResource(R.string.profile_edit_transport_boards)) },
-                            modifier = Modifier.padding(start = 8.dp),
                         )
                         FilterChip(
                             selected = transport == "mts",
                             onClick = { transport = "mts" },
                             label = { Text(stringResource(R.string.profile_edit_transport_mts)) },
-                            modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                     OutlinedTextField(
@@ -180,15 +178,15 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                                     label = { Text(stringResource(R.string.deploy_keys_label)) },
                                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp),
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     listOf("yandex", "volga", "mailru", "boards", "mts").forEach { option ->
                                         FilterChip(
                                             selected = editTransport == option,
                                             onClick = { editTransport = option },
                                             label = { Text(option) },
-                                            modifier = Modifier.padding(end = 8.dp),
                                         )
                                     }
                                 }

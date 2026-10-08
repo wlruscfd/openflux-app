@@ -10,13 +10,20 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -45,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -71,6 +79,8 @@ import org.openflux.app.data.KeyToken
 import org.openflux.app.data.StatsSummary
 import org.openflux.app.data.UsageDay
 import org.openflux.app.deploy.DeployManager
+
+private const val HEADER_MAX_SCREEN_FRACTION = 0.34f
 
 /** text + whether it represents an error, shown as a dismissible banner. */
 data class DetailMessage(val text: String, val isError: Boolean)
@@ -250,7 +260,7 @@ class DeployServerDetailViewModel(
     }
 }
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
     val app = LocalOpenFluxApp.current
@@ -297,121 +307,133 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
             )
         },
     ) { padding ->
+        val headerMaxHeight = (LocalConfiguration.current.screenHeightDp * HEADER_MAX_SCREEN_FRACTION).dp
+        val imeVisible = WindowInsets.isImeVisible
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (status == DeployStatus.RUNNING) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 12.dp).size(22.dp), strokeWidth = 2.dp)
-                    Text(currentStep ?: stringResource(R.string.deploy_detail_deploying))
-                } else {
-                    Button(onClick = viewModel::deployNow) {
-                        Text(stringResource(R.string.deploy_detail_deploy_now))
-                    }
-                    if (status != DeployStatus.NONE) {
-                        Icon(
-                            statusIcon(status),
-                            contentDescription = null,
-                            tint = statusColor(status),
-                            modifier = Modifier.padding(start = 12.dp).size(20.dp),
-                        )
-                        Text(
-                            statusLabel(status),
-                            color = statusColor(status),
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
+            if (!imeVisible) Column(Modifier.heightIn(max = headerMaxHeight).verticalScroll(rememberScrollState())) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (status == DeployStatus.RUNNING) {
+                        CircularProgressIndicator(modifier = Modifier.padding(end = 12.dp).size(22.dp), strokeWidth = 2.dp)
+                        Text(currentStep ?: stringResource(R.string.deploy_detail_deploying))
+                    } else {
+                        Button(onClick = viewModel::deployNow) {
+                            Text(stringResource(R.string.deploy_detail_deploy_now))
+                        }
+                        if (status != DeployStatus.NONE) {
+                            Icon(
+                                statusIcon(status),
+                                contentDescription = null,
+                                tint = statusColor(status),
+                                modifier = Modifier.padding(start = 12.dp).size(20.dp),
+                            )
+                            Text(
+                                statusLabel(status),
+                                color = statusColor(status),
+                                modifier = Modifier.padding(start = 6.dp),
+                            )
+                        }
                     }
                 }
-            }
-            AnimatedVisibility(
-                visible = server != null && status == DeployStatus.SUCCESS,
-                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
-                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
-            ) {
-                val s = server
-                if (s != null) {
-                    Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        SelectionContainer {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(stringResource(R.string.deploy_detail_panel_url, s.baseUrl + "/admin/"))
-                                Text(
-                                    stringResource(R.string.deploy_detail_admin_token, s.adminToken),
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                                if (s.nodeToken.isNotBlank()) {
+                AnimatedVisibility(
+                    visible = server != null && status == DeployStatus.SUCCESS,
+                    enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                    exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+                ) {
+                    val s = server
+                    if (s != null) {
+                        Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            SelectionContainer {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(stringResource(R.string.deploy_detail_panel_url, s.baseUrl + "/admin/"))
                                     Text(
-                                        stringResource(R.string.deploy_detail_node_token, s.nodeToken),
+                                        stringResource(R.string.deploy_detail_admin_token, s.adminToken),
                                         modifier = Modifier.padding(top = 4.dp),
                                     )
+                                    if (s.nodeToken.isNotBlank()) {
+                                        Text(
+                                            stringResource(R.string.deploy_detail_node_token, s.nodeToken),
+                                            modifier = Modifier.padding(top = 4.dp),
+                                        )
+                                    }
+                                    if (s.nodeTokenMissing) {
+                                        Text(
+                                            stringResource(R.string.deploy_node_missing_banner),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.padding(top = 8.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            AnimatedVisibility(
-                visible = message != null,
-                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
-                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
-            ) {
-                val msg = message
-                if (msg != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (msg.isError) {
-                                MaterialTheme.colorScheme.errorContainer
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer
-                            },
-                        ),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                AnimatedVisibility(
+                    visible = message != null,
+                    enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                    exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+                ) {
+                    val msg = message
+                    if (msg != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (msg.isError) {
+                                    MaterialTheme.colorScheme.errorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                },
+                            ),
                         ) {
-                            Icon(
-                                if (msg.isError) Icons.Filled.Error else Icons.Filled.CheckCircle,
-                                contentDescription = null,
-                                tint = if (msg.isError) {
-                                    MaterialTheme.colorScheme.onErrorContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                },
-                            )
-                            Text(
-                                msg.text,
-                                modifier = Modifier.weight(1f).padding(start = 10.dp),
-                                color = if (msg.isError) {
-                                    MaterialTheme.colorScheme.onErrorContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                },
-                            )
-                            IconButton(onClick = viewModel::clearMessage) {
-                                Icon(Icons.Filled.Close, contentDescription = null)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    if (msg.isError) Icons.Filled.Error else Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    tint = if (msg.isError) {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
+                                )
+                                Text(
+                                    msg.text,
+                                    modifier = Modifier.weight(1f).padding(start = 10.dp),
+                                    color = if (msg.isError) {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
+                                )
+                                IconButton(onClick = viewModel::clearMessage) {
+                                    Icon(Icons.Filled.Close, contentDescription = null)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            AnimatedVisibility(
-                visible = loadError != null,
-                enter = expandVertically(tween(220)) + fadeIn(tween(220)),
-                exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
-            ) {
-                val err = loadError
-                if (err != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Error, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                            Text(err, modifier = Modifier.padding(start = 10.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                AnimatedVisibility(
+                    visible = loadError != null,
+                    enter = expandVertically(tween(220)) + fadeIn(tween(220)),
+                    exit = shrinkVertically(tween(180)) + fadeOut(tween(140)),
+                ) {
+                    val err = loadError
+                    if (err != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        ) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Error, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Text(err, modifier = Modifier.padding(start = 10.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                            }
                         }
                     }
                 }
@@ -452,8 +474,15 @@ fun DeployServerDetailScreen(serverId: String, onEditServer: (String) -> Unit) {
 private fun DeployLogTab(serverId: String) {
     val logsMap by DeployManager.logs.collectAsState()
     val lines = logsMap[serverId].orEmpty()
+    val listState = rememberLazyListState()
+    LaunchedEffect(lines.size) {
+        val info = listState.layoutInfo
+        val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+        val wasAtBottom = lastVisible >= info.totalItemsCount - 2
+        if (lines.isNotEmpty() && wasAtBottom) listState.scrollToItem(lines.lastIndex)
+    }
     SelectionContainer {
-        LazyColumn(Modifier.fillMaxSize().padding(12.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(12.dp), state = listState) {
             items(lines) { line ->
                 Text(
                     line,

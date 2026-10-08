@@ -7,6 +7,7 @@ import android.os.Build
 import org.openflux.app.data.AppDatabase
 import org.openflux.app.data.CookiePushStore
 import org.openflux.app.data.DeployServerRepository
+import org.openflux.app.deploy.DeployManager
 import org.openflux.app.data.DeployServerSecretsStore
 import org.openflux.app.data.ProfileHealthStore
 import org.openflux.app.data.ProfileRepository
@@ -39,6 +40,7 @@ class OpenFluxApplication : Application() {
         settingsRepository = SettingsRepository(this)
         deployServerRepository = DeployServerRepository(db.deployServerDao(), DeployServerSecretsStore(this))
         cookiePushStore = CookiePushStore(this)
+        DeployManager.init(this, deployServerRepository)
         profileHealthStore = ProfileHealthStore(this)
 
         createVpnNotificationChannel()

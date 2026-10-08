@@ -1,5 +1,6 @@
 package org.openflux.app.deploy
 
+import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -10,6 +11,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import mobile.DeployCallback
 import mobile.Mobile
+import org.openflux.app.R
+import org.openflux.app.data.DeployProblem
 import org.openflux.app.data.DeployServer
 import org.openflux.app.data.DeployServerRepository
 import org.openflux.app.data.DeployStatus
@@ -36,6 +39,17 @@ object DeployManager {
     private val _batchRunning = MutableStateFlow(false)
     val batchRunning: StateFlow<Boolean> = _batchRunning
 
+    private var appContext: Context? = null
+
+    fun init(context: Context, repository: DeployServerRepository) {
+        appContext = context.applicationContext
+        scope.launch {
+            repository.getAll()
+                .filter { it.lastDeployStatus == DeployStatus.RUNNING && !isRunning(it.id) }
+                .forEach { server -> launch { runOne(repository, server, attachOnly = true) } }
+        }
+    }
+
     fun isRunning(serverId: String): Boolean = _status.value[serverId] == DeployStatus.RUNNING
 
     /** Deploys to a single server. No-op if a deploy for it is already running. */
@@ -60,11 +74,36 @@ object DeployManager {
         }
     }
 
-    private suspend fun runOne(repository: DeployServerRepository, server: DeployServer) {
+    private fun problemText(problem: DeployProblem): String {
+        val res = when (problem) {
+            DeployProblem.HOST -> R.string.deploy_problem_host
+            DeployProblem.PORT -> R.string.deploy_problem_port
+            DeployProblem.USERNAME -> R.string.deploy_problem_username
+            DeployProblem.PASSWORD -> R.string.deploy_problem_password
+            DeployProblem.KEY -> R.string.deploy_problem_key
+            DeployProblem.DOMAIN -> R.string.deploy_problem_domain
+            DeployProblem.EMAIL -> R.string.deploy_problem_email
+            DeployProblem.REPO -> R.string.deploy_problem_repo
+            DeployProblem.NODE_NAME -> R.string.deploy_problem_node_name
+        }
+        return appContext?.getString(res) ?: problem.name
+    }
+
+    private suspend fun runOne(repository: DeployServerRepository, server: DeployServer, attachOnly: Boolean = false) {
         val id = server.id
         _logs.update { it + (id to emptyList()) }
-        _status.update { it + (id to DeployStatus.RUNNING) }
         _currentStep.update { it - id }
+
+        val problem = server.firstProblem
+        if (problem != null) {
+            _logs.update { it + (id to listOf("error: ${problemText(problem)}")) }
+            _status.update { it + (id to DeployStatus.FAILED) }
+            repository.recordDeployResult(id, DeployStatus.FAILED, server.knownHostKeyFingerprint)
+            return
+        }
+
+        _status.update { it + (id to DeployStatus.RUNNING) }
+        repository.recordDeployStarted(id)
 
         var fingerprint = server.knownHostKeyFingerprint
         val callback = object : DeployCallback {
@@ -88,7 +127,7 @@ object DeployManager {
         }
 
         val succeeded = try {
-            Mobile.deploy(server.toSshTargetJson(), server.toDeployOptionsJson(), callback)
+            Mobile.deploy(server.toSshTargetJson(), server.toDeployOptionsJson(attachOnly), callback)
             true
         } catch (t: Throwable) {
             callback.onLog("error: ${t.message}")

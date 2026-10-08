@@ -151,6 +151,19 @@
     <string name="deploy_edit_run_node_here">Также запустить эту exit-ноду на этом сервере</string>
     <string name="deploy_edit_save">Сохранить</string>
     <string name="deploy_edit_cancel">Отмена</string>
+    <string name="deploy_problem_host">Не указан адрес сервера: откройте настройки сервера и заполните его.</string>
+    <string name="deploy_problem_port">SSH-порт должен быть от 1 до 65535.</string>
+    <string name="deploy_problem_username">Не указан SSH-пользователь.</string>
+    <string name="deploy_problem_password">Не указан SSH-пароль.</string>
+    <string name="deploy_problem_key">Не указан приватный SSH-ключ.</string>
+    <string name="deploy_problem_domain">Для режима с доменом нужен домен, уже направленный на этот сервер.</string>
+    <string name="deploy_problem_email">Для режима с доменом нужен email для сертификата Let\'s Encrypt.</string>
+    <string name="deploy_problem_repo">Не указан адрес репозитория сервера.</string>
+    <string name="deploy_problem_node_name">Не указано имя выходной ноды.</string>
+    <string name="deploy_node_missing_short">Развёрнут, но токена выходной ноды нет</string>
+    <string name="deploy_node_missing_banner">Панель работает, но выходная нода не зарегистрировалась или её токен не вернулся, поэтому трафик не пойдёт. Разверните заново; если повторится - откройте «Настройки» и зарегистрируйте ноду.</string>
+    <string name="deploy_edit_forget_host_key">Забыть сохранённый ключ хоста</string>
+    <string name="deploy_edit_host_key_saved">Ключ хоста закреплён: %1$s</string>
     <string name="deploy_edit_delete">Удалить сервер</string>
 
     <string name="deploy_detail_deploy_now">Развернуть сейчас</string>

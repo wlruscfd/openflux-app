@@ -5,6 +5,8 @@ enum class SshAuthMethod { PASSWORD, KEY }
 enum class TlsMode { DOMAIN, IP, HTTP }
 enum class DeployStatus { NONE, RUNNING, SUCCESS, FAILED }
 
+enum class DeployProblem { HOST, PORT, USERNAME, PASSWORD, KEY, DOMAIN, EMAIL, REPO, NODE_NAME }
+
 // [DeployServerEntity]'s non-secret fields joined with the secrets in [DeployServerSecretsStore] for the same id.
 data class DeployServer(
     val id: String = "",
@@ -37,6 +39,23 @@ data class DeployServer(
     val lastDeployAt: Long = 0,
 ) {
     /** Where this server's controlplane (once deployed) is reachable. */
+    val nodeTokenMissing: Boolean
+        get() = registerNode && nodeToken.isBlank() && lastDeployStatus == DeployStatus.SUCCESS
+
+    val firstProblem: DeployProblem?
+        get() = when {
+            host.isBlank() -> DeployProblem.HOST
+            port !in 1..65535 -> DeployProblem.PORT
+            username.isBlank() -> DeployProblem.USERNAME
+            authMethod == SshAuthMethod.PASSWORD && sshPassword.isEmpty() -> DeployProblem.PASSWORD
+            authMethod == SshAuthMethod.KEY && sshPrivateKeyPem.isBlank() -> DeployProblem.KEY
+            tlsMode == TlsMode.DOMAIN && domain.isBlank() -> DeployProblem.DOMAIN
+            tlsMode == TlsMode.DOMAIN && email.isBlank() -> DeployProblem.EMAIL
+            repoUrl.isBlank() -> DeployProblem.REPO
+            registerNode && nodeName.isBlank() -> DeployProblem.NODE_NAME
+            else -> null
+        }
+
     val baseUrl: String get() = when (tlsMode) {
         TlsMode.DOMAIN -> "https://$domain"
         TlsMode.IP -> "https://$host"
