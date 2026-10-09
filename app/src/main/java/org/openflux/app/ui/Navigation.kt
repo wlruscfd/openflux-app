@@ -9,7 +9,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
@@ -148,7 +147,7 @@ fun OpenFluxNavHost(
         NavHost(
             navController = navController,
             startDestination = Destination.Home.route,
-            modifier = androidx.compose.ui.Modifier.padding(padding).consumeWindowInsets(padding),
+            modifier = androidx.compose.ui.Modifier.padding(padding),
             enterTransition = {
                 if (isTabSwitch()) {
                     fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
