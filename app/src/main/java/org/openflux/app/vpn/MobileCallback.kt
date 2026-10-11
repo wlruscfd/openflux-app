@@ -152,7 +152,12 @@ class MobileCallback : Callback {
     }
 
     override fun onStats(bytesSent: Long, bytesReceived: Long) {
+        val grew = bytesReceived > _stats.value.bytesReceived
         _stats.value = TrafficStats(bytesSent, bytesReceived)
+        if (grew && _status.value is TunnelStatus.Connected && !_channelReady.value) {
+            _channelReady.value = true
+            _lastRetryDetail.value = null
+        }
     }
 
     // Unlike onStatus, these keep arriving for every silent background reconnect, not just once.
