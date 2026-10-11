@@ -1,6 +1,7 @@
 package org.openflux.app.vpn
 
 import java.util.concurrent.atomic.AtomicLong
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -77,6 +78,13 @@ class MobileCallback : Callback {
     val connectivityOk: StateFlow<Boolean?> = _connectivityOk
 
     fun setConnectivityOk(ok: Boolean?) {
+        if (_connectivityOk.value != ok) {
+            Log.i(
+                "OpenFluxHealth",
+                "connectivityOk ${_connectivityOk.value} -> $ok (channelReady=${_channelReady.value} " +
+                    "sent=${_stats.value.bytesSent} recv=${_stats.value.bytesReceived})",
+            )
+        }
         _connectivityOk.value = ok
     }
 

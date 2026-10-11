@@ -40,7 +40,7 @@ class CookiePushClient(
     private val baseUrl = baseUrl.trimEnd('/')
     private val socksPort = socksPort
 
-    suspend fun push(cookies: String): CookiePushResult = withContext(Dispatchers.IO) {
+    suspend fun push(cookies: String, resolvedUrl: String = ""): CookiePushResult = withContext(Dispatchers.IO) {
         if (baseUrl.isBlank()) return@withContext CookiePushResult.Failed(PushFailure.NO_CONTROL_URL)
         if (keyToken.isBlank()) return@withContext CookiePushResult.Failed(PushFailure.NO_KEY_TOKEN)
         if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
@@ -51,7 +51,10 @@ class CookiePushClient(
             return@withContext CookiePushResult.Failed(PushFailure.NO_TUNNEL)
         }
 
-        val body = JSONObject().put("cookies", cookies).toString()
+        val body = JSONObject()
+            .put("cookies", cookies)
+            .apply { if (resolvedUrl.isNotBlank()) put("resolved_url", resolvedUrl) }
+            .toString()
             .toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
             .url("$baseUrl/v1/keys/cookies")

@@ -1,5 +1,6 @@
 package org.openflux.app.vpn
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -19,6 +20,7 @@ class TunnelHealthChecker(
     private val channelReady: StateFlow<Boolean>,
     private val stats: StateFlow<TrafficStats>,
     private val onResult: (Boolean?) -> Unit,
+    private val tag: String = "tunnel",
 ) {
     private var job: Job? = null
 
@@ -54,6 +56,12 @@ class TunnelHealthChecker(
                     sentDelta >= MIN_SENT_BYTES_TO_JUDGE -> {
                         val since = oneWaySince ?: System.currentTimeMillis().also { oneWaySince = it }
                         if (System.currentTimeMillis() - since >= ONE_WAY_CONFIRM_MS) {
+                            Log.i(
+                                "OpenFluxHealth",
+                                "$tag verdict=ONE_WAY sent=$sentDelta recv=$receivedDelta " +
+                                    "totalSent=${current.bytesSent} totalRecv=${current.bytesReceived} " +
+                                    "heldMs=${System.currentTimeMillis() - since}",
+                            )
                             onResult(false)
                         }
                     }

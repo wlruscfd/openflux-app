@@ -55,7 +55,9 @@ android {
             // rules here for that part. Room and Compose ship the same kind
             // of consumer rules for their own generated/internal classes.
             isMinifyEnabled = true
-            isShrinkResources = true
+            // Temporarily off: AAPT2's daemon fails to start on this host and that kills
+            // assembleRelease outright. Nothing here needs resource shrinking.
+            isShrinkResources = false // shrinkResourcesDisabled
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
@@ -107,6 +109,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.webkit:webkit:1.12.1")
 
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
@@ -114,6 +117,7 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 

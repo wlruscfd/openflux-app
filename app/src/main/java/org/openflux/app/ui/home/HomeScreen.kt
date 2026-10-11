@@ -301,13 +301,14 @@ fun HomeScreen(
         }
 
         if (captchaUrl != null) {
-            CaptchaWebViewDialog(
-                docUrl = captchaUrl,
+CaptchaWebViewDialog(
+            docUrl = captchaUrl,
+            proxyHostPort = if (socks5Active) "127.0.0.1:$socks5Port" else null,
                 onDismiss = {
                     OpenFluxVpnService.callback.dismissCaptchaPrompt()
                     OpenFluxSocks5Service.callback.dismissCaptchaPrompt()
                 },
-                onSolved = { cookies ->
+                onSolved = { cookies, _ ->
                     if (runCatching { Mobile.provideCaptchaCookies(cookies) }.isSuccess) {
                         OpenFluxVpnService.callback.captchaSolved()
                         OpenFluxSocks5Service.callback.captchaSolved()

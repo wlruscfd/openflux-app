@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,10 +32,10 @@ class OpenFluxSocks5Service : Service() {
     private var connectJob: Job? = null
     private var connectedProfile: Profile? = null
 
-    private val healthChecker = TunnelHealthChecker(serviceScope, callback.channelReady, callback.stats) { ok ->
+    private val healthChecker = TunnelHealthChecker(serviceScope, callback.channelReady, callback.stats, { ok ->
         callback.setConnectivityOk(ok)
         if (ok == false) handleOneWayTraffic() else clearOneWayTrafficAlert()
-    }
+    }, "socks5")
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -54,6 +55,7 @@ class OpenFluxSocks5Service : Service() {
     }
 
     private fun start(profileId: String) {
+        Log.i("OpenFluxSocks5", "start() entered profileId=$profileId")
         val previousConnectJob = connectJob
         healthChecker.stop()
         clearOneWayTrafficAlert()
@@ -84,11 +86,15 @@ class OpenFluxSocks5Service : Service() {
             val port = app.settingsRepository.socks5Port.first()
             val listenAddr = "127.0.0.1:$port"
 
+            Log.i("OpenFluxSocks5", "start() profile=$profileId listen=$listenAddr")
+
             runCatching { Mobile.stopSocks5Proxy() }
 
             try {
                 Mobile.startSocks5Proxy(profile.toStartTunnelConfigJson(), listenAddr, callback)
+                Log.i("OpenFluxSocks5", "startSocks5Proxy returned normally")
             } catch (t: Throwable) {
+                Log.e("OpenFluxSocks5", "startSocks5Proxy threw: $t")
                 callback.onStatus("error:${t.message}")
                 app.profileHealthStore.recordFailure(profile.id, t.message ?: "startSocks5Proxy failed")
                 stopSelf()

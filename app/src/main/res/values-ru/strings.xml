@@ -326,4 +326,12 @@
     <string name="balancer_profile_hint">Выбирает профиль, который работает. Профиль, только что упавший, пропускается 5 минут.</string>
     <string name="balancer_connecting_via">через %1$s</string>
     <string name="balancer_no_target">нет рабочего профиля</string>
+    <string name="captcha_dialog_via_tunnel">Проверка решается через туннель (%1$s) - тот же адрес, что использует exit-узел.</string>
+    <string name="profile_edit_send_cookies_pick_tunnel">Через какой конфиг гнать проверку?</string>
+    <string name="profile_edit_send_cookies_pick_tunnel_hint">Приложение само поднимет этот конфиг как VPN. Проверка решается через exit-узел, поэтому пропуск совпадёт с его адресом.</string>
+    <string name="profile_edit_send_cookies_no_other_profile">Нет других конфигов - сначала добавь.</string>
+    <string name="profile_edit_cookies_tunnel_waiting">Поднимаем туннель, чтобы проверка шла через exit-узел...</string>
+    <string name="profile_edit_cookies_tunnel_failed">Не удалось поднять туннель: %1$s</string>
+    <string name="profile_edit_cookies_tunnel_timeout">Туннель не поднялся за минуту. Выбери другой конфиг или попробуй снова - сам конфиг может быть в порядке, просто медленный.</string>
+    <string name="profile_edit_cookies_pick_another">Выбрать другой конфиг</string>
 </resources>

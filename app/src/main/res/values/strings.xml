@@ -278,7 +278,7 @@
     <string name="home_socks5_hint">Point an app\'s proxy settings at this address - only that app\'s traffic goes through it, unlike full VPN mode.</string>
     <string name="captcha_dialog_title">Solve the check to continue</string>
     <string name="captcha_dialog_continue">Continue</string>
-    <string name="captcha_dialog_wbv_hint">Yandex is checking you in the background. No action needed - the window closes by itself, a blank page here is normal.</string>
+    <string name="captcha_dialog_wbv_hint">Wait for the check to load. If it stays blank, close it and pick another profile.</string>
 	<string name="deploy_refresh">Refresh</string>
 	<string name="deploy_detail_tab_stats">Traffic</string>
 	<string name="deploy_keys_updated">Key updated</string>
@@ -329,4 +329,12 @@
     <string name="balancer_profile_hint">Picks the profile that has been working. A profile that just failed is skipped for 5 minutes.</string>
     <string name="balancer_connecting_via">via %1$s</string>
     <string name="balancer_no_target">no working profile found</string>
+    <string name="captcha_dialog_via_tunnel">Check is being solved through the tunnel (%1$s) - the same address the exit node uses.</string>
+    <string name="profile_edit_send_cookies_pick_tunnel">Which config should carry the check?</string>
+    <string name="profile_edit_send_cookies_pick_tunnel_hint">The app starts that config as a VPN by itself. The check is solved through the exit node, so the pass matches the address the node uses.</string>
+    <string name="profile_edit_send_cookies_no_other_profile">No other config available - add one first.</string>
+    <string name="profile_edit_cookies_tunnel_waiting">Starting the tunnel so the check runs through the exit node...</string>
+    <string name="profile_edit_cookies_tunnel_failed">Could not start the tunnel: %1$s</string>
+    <string name="profile_edit_cookies_tunnel_timeout">The tunnel did not come up in a minute. Pick another config or try again - the config itself may be fine, just slow.</string>
+    <string name="profile_edit_cookies_pick_another">Choose another config</string>
 </resources>

@@ -45,10 +45,16 @@ class OpenFluxVpnService : VpnService(), Protector {
     // Tracked so a later disconnect() or overlapping connect() can actually cancel it.
     private var connectJob: Job? = null
 
-    private val healthChecker = TunnelHealthChecker(serviceScope, callback.channelReady, callback.stats) { ok ->
-        callback.setConnectivityOk(ok)
-        if (ok == false) handleOneWayTraffic() else clearOneWayTrafficAlert()
-    }
+    private val healthChecker = TunnelHealthChecker(
+        serviceScope,
+        callback.channelReady,
+        callback.stats,
+        { ok ->
+            callback.setConnectivityOk(ok)
+            if (ok == false) handleOneWayTraffic() else clearOneWayTrafficAlert()
+        },
+        "vpn",
+    )
 
     // gomobile binds Go's `int` to a Kotlin `long`, so protect takes a Long here even though VpnService.protect takes an Int.
     override fun protect(fd: Long): Boolean = super.protect(fd.toInt())

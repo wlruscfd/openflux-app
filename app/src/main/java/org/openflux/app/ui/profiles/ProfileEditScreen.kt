@@ -2,10 +2,11 @@ package org.openflux.app.ui.profiles
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -15,40 +16,50 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import org.openflux.app.LocalOpenFluxApp
-import org.openflux.app.OpenFluxApplication
-import org.openflux.app.R
+import kotlinx.coroutines.withTimeoutOrNull
 import org.openflux.app.data.CookiePushClient
 import org.openflux.app.data.CookiePushOutcome
 import org.openflux.app.data.CookiePushResult
-import org.openflux.app.data.PushRoute
 import org.openflux.app.data.ManualTransport
 import org.openflux.app.data.Profile
 import org.openflux.app.data.ProfileMode
 import org.openflux.app.data.ProfileRepository
 import org.openflux.app.data.PushFailure
+import org.openflux.app.data.PushRoute
+import org.openflux.app.LocalOpenFluxApp
+import org.openflux.app.OpenFluxApplication
+import org.openflux.app.R
+import org.openflux.app.ui.home.CaptchaWebViewDialog
 import org.openflux.app.ui.IntTextField
 import org.openflux.app.ui.LongTextField
-import org.openflux.app.ui.home.CaptchaWebViewDialog
+import org.openflux.app.vpn.OpenFluxSocks5Service
+import org.openflux.app.vpn.OpenFluxVpnService
+import org.openflux.app.vpn.TunnelStatus
+
+
 
 class ProfileEditViewModel(private val repository: ProfileRepository) : ViewModel() {
     private val _cookiePushMessage = MutableStateFlow<String?>(null)
@@ -85,12 +96,13 @@ class ProfileEditViewModel(private val repository: ProfileRepository) : ViewMode
         app: OpenFluxApplication,
         route: PushRoute = PushRoute.DIRECT,
         socksPort: Int = 0,
+        resolvedUrl: String = "",
     ) {
         if (_cookiePushBusy.value) return
         _cookiePushBusy.value = true
         _cookiePushMessage.value = null
         viewModelScope.launch {
-            val result = CookiePushClient(profile.controlUrl, profile.keyToken, route, socksPort).push(cookies)
+            val result = CookiePushClient(profile.controlUrl, profile.keyToken, route, socksPort).push(cookies, resolvedUrl)
             when (result) {
                 is CookiePushResult.Sent ->
                     app.cookiePushStore.record(profile.id, CookiePushOutcome.SENT, null, route)
@@ -134,7 +146,13 @@ private fun cookiePushAvailable(profile: Profile): Boolean =
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDone: () -> Unit) {
+fun ProfileEditScreen(
+    profileId: String?,
+    importedProfile: Profile? = null,
+    onStartTunnelForCookies: (String) -> Unit = {},
+    onStopTunnelAfterCookies: () -> Unit = {},
+    onDone: () -> Unit,
+) {
     val app = LocalOpenFluxApp.current
     val viewModel: ProfileEditViewModel = viewModel(
         factory = viewModelFactory { initializer { ProfileEditViewModel(app.profileRepository) } },
@@ -144,9 +162,20 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
 
     var profile by remember { mutableStateOf<Profile?>(null) }
     var cookieSheetFor by remember { mutableStateOf<Profile?>(null) }
-    var pushViaTunnel by remember { mutableStateOf(false) }
-    val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 1080)
+    var tunnelPickerOpen by remember { mutableStateOf(false) }
+    var cookieTargetFor by remember { mutableStateOf<Profile?>(null) }
+    var cookieTunnelPending by remember { mutableStateOf(false) }
+    var cookieTunnelError by remember { mutableStateOf<String?>(null) }
+    val profiles by app.profileRepository.observeAll().collectAsState(initial = emptyList())
+    val vpnStatus by OpenFluxVpnService.callback.status.collectAsState()
+    val vpnUp = vpnStatus is TunnelStatus.Connected
+    val socks5Ready by OpenFluxSocks5Service.callback.channelReady.collectAsState()
+    val socks5Status by OpenFluxSocks5Service.callback.status.collectAsState()
+    val socks5Port by app.settingsRepository.socks5Port.collectAsState(initial = 0)
+    val socks5Address = if (socks5Port > 0) "127.0.0.1:$socks5Port" else null
     val cookieRecords by app.cookiePushStore.records.collectAsState()
+    val tunnelFailedFormat = stringResource(R.string.profile_edit_cookies_tunnel_failed)
+    val tunnelTimeoutMessage = stringResource(R.string.profile_edit_cookies_tunnel_timeout)
     val cookiePushMessage by viewModel.cookiePushMessage.collectAsState()
     val cookiePushBusy by viewModel.cookiePushBusy.collectAsState()
 
@@ -417,34 +446,10 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
             }
 
             if (cookiePushAvailable(current)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                ) {
-                    androidx.compose.material3.Switch(
-                        checked = pushViaTunnel,
-                        onCheckedChange = { pushViaTunnel = it },
-                    )
-                    Text(
-                        stringResource(R.string.profile_edit_send_cookies_via_tunnel),
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(start = 12.dp),
-                    )
-                }
-                Text(
-                    stringResource(
-                        if (pushViaTunnel) R.string.profile_edit_send_cookies_via_tunnel_hint
-                        else R.string.profile_edit_send_cookies_hint,
-                    ),
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-
-                val route = if (pushViaTunnel) PushRoute.VIA_TUNNEL else PushRoute.DIRECT
                 OutlinedButton(
-                    onClick = { cookieSheetFor = current },
+                    onClick = { tunnelPickerOpen = true },
                     enabled = !cookiePushBusy,
-                    modifier = Modifier.padding(top = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 ) {
                     Text(
                         if (cookiePushBusy) stringResource(R.string.profile_edit_send_cookies_sending)
@@ -481,23 +486,136 @@ fun ProfileEditScreen(profileId: String?, importedProfile: Profile? = null, onDo
         }
     }
 
-    cookieSheetFor?.let { target ->
-        CaptchaWebViewDialog(
-            docUrl = target.docUrl.ifBlank { "https://disk.yandex.ru/" },
-            onDismiss = {
-                cookieSheetFor = null
-                viewModel.clearCookiePushMessage()
+    if (tunnelPickerOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { tunnelPickerOpen = false },
+            title = { Text(stringResource(R.string.profile_edit_send_cookies_pick_tunnel)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.profile_edit_send_cookies_pick_tunnel_hint),
+                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    )
+                    val usable = profiles.filter { it.id != profile?.id }
+                    if (usable.isEmpty()) {
+                        Text(
+                            stringResource(R.string.profile_edit_send_cookies_no_other_profile),
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                    usable.forEach { candidate ->
+                        TextButton(
+                            onClick = {
+                                tunnelPickerOpen = false
+                                cookieSheetFor = current
+                                cookieTargetFor = current
+                                onStartTunnelForCookies(candidate.id)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(candidate.name, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
             },
-            onSolved = { cookies ->
-                viewModel.pushCookies(
-                    profile = target,
-                    cookies = cookies,
-                    app = app,
-                    route = if (pushViaTunnel) PushRoute.VIA_TUNNEL else PushRoute.DIRECT,
-                    socksPort = socks5Port,
-                )
-                cookieSheetFor = null
+            confirmButton = {
+                TextButton(onClick = { tunnelPickerOpen = false }) {
+                    Text(stringResource(R.string.profile_edit_cancel))
+                }
             },
         )
     }
+
+    cookieSheetFor?.let { target ->
+        if (socks5Ready && socks5Address != null) {
+            CaptchaWebViewDialog(
+                docUrl = target.docUrl.ifBlank { "https://disk.yandex.ru/" },
+                proxyHostPort = socks5Address,
+                onDismiss = {
+                    cookieSheetFor = null
+                    viewModel.clearCookiePushMessage()
+                    onStopTunnelAfterCookies()
+                },
+                onSolved = { cookies, resolvedUrl ->
+                    viewModel.pushCookies(
+                        profile = target,
+                        cookies = cookies,
+                        app = app,
+                        resolvedUrl = resolvedUrl,
+                    )
+                    cookieSheetFor = null
+                    onStopTunnelAfterCookies()
+                },
+            )
+        }
+    }
+
+LaunchedEffect(cookieSheetFor) {
+        if (cookieSheetFor == null) {
+            cookieTunnelPending = false
+            return@LaunchedEffect
+        }
+        cookieTunnelPending = true
+        cookieTunnelError = null
+        val settled = withTimeoutOrNull(TUNNEL_WAIT_MS) {
+            snapshotFlow {
+                OpenFluxSocks5Service.callback.channelReady.value to
+                    OpenFluxSocks5Service.callback.status.value
+            }.first { it.first || it.second is TunnelStatus.Error }
+        }
+        cookieTunnelPending = false
+        val socksError = settled?.second as? TunnelStatus.Error
+        when {
+            settled?.first == true -> Unit
+            socksError != null -> {
+                cookieTunnelError = tunnelFailedFormat.format(app, socksError.message)
+                cookieSheetFor = null
+                onStopTunnelAfterCookies()
+            }
+            else -> {
+                cookieTunnelError = tunnelTimeoutMessage
+                cookieSheetFor = null
+                onStopTunnelAfterCookies()
+            }
+        }
+    }
+
+    val cookieBusy = cookiePushBusy || cookieTunnelPending
+    if (cookieBusy || cookieTunnelError != null) {
+        androidx.compose.material3.Card(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.padding(14.dp)) {
+                if (cookieBusy) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Text(
+                            text = stringResource(R.string.profile_edit_cookies_tunnel_waiting),
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
+                }
+                cookieTunnelError?.let { message ->
+                    Text(
+                        text = message,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                    )
+                    TextButton(
+                        onClick = { tunnelPickerOpen = true },
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Text(stringResource(R.string.profile_edit_cookies_pick_another))
+                    }
+                }
+            }
+        }
+    }
 }
+
+private const val TUNNEL_WAIT_MS = 60_000L

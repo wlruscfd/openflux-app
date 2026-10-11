@@ -1,5 +1,6 @@
 package org.openflux.app.ui
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
@@ -29,7 +30,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -51,6 +54,8 @@ import org.openflux.app.ui.profiles.QrScanScreen
 import org.openflux.app.ui.settings.SettingsScreen
 import org.openflux.app.ui.settings.SiteSplitTunnelScreen
 import org.openflux.app.ui.settings.SplitTunnelScreen
+import org.openflux.app.vpn.OpenFluxSocks5Service
+import org.openflux.app.vpn.OpenFluxVpnService
 
 private sealed class Destination(val route: String, val labelRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     data object Home : Destination("home", R.string.nav_home, Icons.Filled.Home)
@@ -221,9 +226,34 @@ fun OpenFluxNavHost(
                     onDispose { importedProfile = null }
                 }
 
+                val cookieContext = LocalContext.current
+
                 ProfileEditScreen(
                     profileId = rawId?.takeIf { !isNew },
                     importedProfile = if (isNew) importedProfile else null,
+                onStartTunnelForCookies = { profileId ->
+                    android.util.Log.i("OpenFluxCookie", "stopping vpn then starting socks5 for $profileId")
+                    cookieContext.startService(
+                        Intent(cookieContext, OpenFluxVpnService::class.java).apply {
+                            action = OpenFluxVpnService.ACTION_DISCONNECT
+                        },
+                    )
+                    ContextCompat.startForegroundService(
+                        cookieContext,
+                        Intent(cookieContext, OpenFluxSocks5Service::class.java).apply {
+                            action = OpenFluxSocks5Service.ACTION_START
+                            putExtra(OpenFluxSocks5Service.EXTRA_PROFILE_ID, profileId)
+                        },
+                    )
+                    android.util.Log.i("OpenFluxCookie", "socks5 start intent sent")
+                },
+                onStopTunnelAfterCookies = {
+                    cookieContext.startService(
+                        Intent(cookieContext, OpenFluxSocks5Service::class.java).apply {
+                            action = OpenFluxSocks5Service.ACTION_STOP
+                        },
+                    )
+                },
                     onDone = { navController.popBackStack() },
                 )
             }
