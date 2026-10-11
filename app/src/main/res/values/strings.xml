@@ -325,6 +325,8 @@
     <string name="profiles_cookies_badge_failed">cookie send failed</string>
     <string name="profile_transport_label">Transport</string>
     <string name="split_tunnel_selected_count">Selected: %1$d</string>
+    <string name="split_tunnel_show_all">All apps</string>
+    <string name="split_tunnel_show_system">System apps</string>
     <string name="balancer_profile_name">Auto-balance</string>
     <string name="balancer_profile_hint">Picks the profile that has been working. A profile that just failed is skipped for 5 minutes.</string>
     <string name="balancer_connecting_via">via %1$s</string>

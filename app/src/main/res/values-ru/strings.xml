@@ -322,6 +322,8 @@
     <string name="profiles_cookies_badge_failed">отправка кук провалилась</string>
     <string name="profile_transport_label">Транспорт</string>
     <string name="split_tunnel_selected_count">Выбрано: %1$d</string>
+    <string name="split_tunnel_show_all">Все приложения</string>
+    <string name="split_tunnel_show_system">Системные</string>
     <string name="balancer_profile_name">Авто-балансировщик</string>
     <string name="balancer_profile_hint">Выбирает профиль, который работает. Профиль, только что упавший, пропускается 5 минут.</string>
     <string name="balancer_connecting_via">через %1$s</string>

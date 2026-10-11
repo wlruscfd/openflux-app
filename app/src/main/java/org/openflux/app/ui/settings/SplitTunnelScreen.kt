@@ -1,6 +1,11 @@
 package org.openflux.app.ui.settings
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -42,6 +47,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +79,7 @@ data class InstalledApp(
     val packageName: String,
     val label: String,
     val icon: androidx.compose.ui.graphics.ImageBitmap?,
+    val isSystem: Boolean,
 )
 
 class SplitTunnelViewModel(private val repository: SettingsRepository, private val context: Context) : ViewModel() {
@@ -91,14 +98,14 @@ class SplitTunnelViewModel(private val repository: SettingsRepository, private v
             val list = withContext(Dispatchers.IO) {
                 val pm = context.packageManager
                 pm.getInstalledApplications(0)
-                    .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
                     .map { installed ->
                         InstalledApp(
                             packageName = installed.packageName,
                             label = installed.loadLabel(pm).toString(),
                             icon = runCatching {
-                                pm.getApplicationIcon(installed.packageName).toBitmap(ICON_PX).asImageBitmap()
+                                pm.getApplicationIcon(installed.packageName).toSquareBitmap(ICON_PX).asImageBitmap()
                             }.getOrNull(),
+                            isSystem = (installed.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                         )
                     }
                     .sortedBy { it.label.lowercase() }
@@ -129,6 +136,7 @@ fun SplitTunnelScreen(onDone: () -> Unit) {
     val selected by viewModel.selectedApps.collectAsState()
     val apps by viewModel.apps.collectAsState()
     var filter by remember { mutableStateOf("") }
+    var systemOnly by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -181,7 +189,28 @@ fun SplitTunnelScreen(onDone: () -> Unit) {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         )
 
-                        val filtered = if (filter.isBlank()) apps else apps.filter { it.label.contains(filter, ignoreCase = true) }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            FilterChip(
+                                selected = !systemOnly,
+                                onClick = { systemOnly = false },
+                                label = { Text(stringResource(R.string.split_tunnel_show_all)) },
+                            )
+                            FilterChip(
+                                selected = systemOnly,
+                                onClick = { systemOnly = true },
+                                label = { Text(stringResource(R.string.split_tunnel_show_system)) },
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+
+                        val filtered = apps
+                            .filter { !systemOnly || it.isSystem }
+                            .filter { filter.isBlank() || it.label.contains(filter, ignoreCase = true) }
                         val visibleApps = filtered.sortedByDescending { it.packageName in selected }
 
                         if (apps.isEmpty()) {
@@ -261,6 +290,23 @@ private fun AppRow(app: InstalledApp, checked: Boolean, onToggle: () -> Unit, mo
         }
         Checkbox(checked = checked, onCheckedChange = { onToggle() })
     }
+}
+
+private fun Drawable.toSquareBitmap(size: Int): Bitmap {
+    if (this is AdaptiveIconDrawable) return toBitmap(size, size)
+
+    val sourceWidth = intrinsicWidth.takeIf { it > 0 } ?: size
+    val sourceHeight = intrinsicHeight.takeIf { it > 0 } ?: size
+    val scale = minOf(size.toFloat() / sourceWidth, size.toFloat() / sourceHeight)
+    val drawWidth = (sourceWidth * scale).toInt().coerceAtLeast(1)
+    val drawHeight = (sourceHeight * scale).toInt().coerceAtLeast(1)
+    val left = (size - drawWidth) / 2
+    val top = (size - drawHeight) / 2
+
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    setBounds(left, top, left + drawWidth, top + drawHeight)
+    draw(Canvas(bitmap))
+    return bitmap
 }
 
 private const val ICON_PX = 96
