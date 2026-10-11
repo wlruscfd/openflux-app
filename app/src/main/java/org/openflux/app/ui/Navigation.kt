@@ -10,8 +10,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -31,6 +31,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavBackStackEntry
@@ -89,6 +91,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boo
     initialState.destination.route in TAB_ROUTES && targetState.destination.route in TAB_ROUTES
 
 private const val TAB_FADE_MS = 160
+private val KEYBOARD_MIN_HEIGHT = 160.dp
 private const val PUSH_SLIDE_MS = 280
 private const val TAB_SCALE_IN_START = 0.97f
 private const val TAB_SCALE_OUT_END = 1.02f
@@ -117,14 +120,15 @@ fun OpenFluxNavHost(
         onDeepLinkHandled()
     }
 
-    val imeVisible = WindowInsets.isImeVisible
+    val density = LocalDensity.current
+    val keyboardOpen = with(density) { WindowInsets.ime.getBottom(density).toDp() } > KEYBOARD_MIN_HEIGHT
 
     Scaffold(
         modifier = androidx.compose.ui.Modifier.imePadding(),
         bottomBar = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
-            if (!imeVisible) NavigationBar {
+            if (currentDestination?.route in TAB_ROUTES || !keyboardOpen) NavigationBar {
                 tabs.forEach { tab ->
                     val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
                     NavigationBarItem(
