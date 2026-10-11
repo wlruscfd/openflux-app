@@ -82,6 +82,7 @@
     <string name="profile_edit_transport_mailru">Mail.ru</string>
     <string name="profile_edit_transport_boards">Яндекс Доски</string>
     <string name="profile_edit_transport_mts">MTS Link Доски</string>
+    <string name="profile_edit_transport_telemost">Телемост</string>
     <string name="profile_edit_max_token">Токен авторизации аккаунта MAX</string>
     <string name="profile_edit_max_uid">ID пользователя для звонка</string>
     <string name="profile_edit_transport_multistream">Yandex Docs (мультистрим)</string>
@@ -295,6 +296,7 @@
 	<string name="deploy_keys_edit_title">Изменение ключа</string>
 	<string name="deploy_keys_edit_hint">При смене ссылки, транспорта или шифрования нода перезапустит ключ в течение нескольких секунд.</string>
 	<string name="deploy_keys_doc_url_mts">Ссылка на MTS Link Доски</string>
+	<string name="deploy_keys_doc_url_telemost">Ссылка на конференцию Яндекс Телемоста</string>
 	<string name="deploy_keys_doc_url_boards">Ссылка на Яндекс Доски</string>
 	<string name="deploy_keys_doc_url_mailru">Ссылка на Mail.ru Boards</string>
 	<string name="deploy_keys_doc_url_yandex">Ссылка на Yandex Docs</string>

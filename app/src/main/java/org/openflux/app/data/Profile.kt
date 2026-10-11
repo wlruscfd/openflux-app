@@ -8,7 +8,7 @@ const val BALANCER_PROFILE_ID = "__balancer__"
 enum class ProfileMode { KEY, MANUAL }
 
 // Despite the name, this is set for both profile modes - see ProfileEditScreen.
-enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM, MAILRU, BOARDS, MTS }
+enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM, MAILRU, BOARDS, MTS, TELEMOST }
 
 /** The wire name mobile.Config and deep links use for a transport - see mobile/mobile.go. */
 fun transportName(t: ManualTransport): String = when (t) {
@@ -19,6 +19,7 @@ fun transportName(t: ManualTransport): String = when (t) {
     ManualTransport.MAILRU -> "mailru"
     ManualTransport.BOARDS -> "boards"
     ManualTransport.MTS -> "mts"
+    ManualTransport.TELEMOST -> "telemost"
 }
 
 fun parseTransportName(name: String): ManualTransport = when (name) {
@@ -28,6 +29,7 @@ fun parseTransportName(name: String): ManualTransport = when (name) {
     "mailru" -> ManualTransport.MAILRU
     "boards" -> ManualTransport.BOARDS
     "mts" -> ManualTransport.MTS
+    "telemost" -> ManualTransport.TELEMOST
     else -> ManualTransport.YANDEX
 }
 
@@ -39,6 +41,7 @@ fun transportLabel(t: ManualTransport): String = when (t) {
     ManualTransport.MAILRU -> "Mail.ru"
     ManualTransport.BOARDS -> "Boards"
     ManualTransport.MTS -> "MTS"
+    ManualTransport.TELEMOST -> "Telemost"
 }
 
 // [ProfileEntity]'s non-secret fields joined with the secret material [SecretsStore] holds for the same id.

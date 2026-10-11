@@ -99,6 +99,11 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                             onClick = { transport = "mts" },
                             label = { Text(stringResource(R.string.profile_edit_transport_mts)) },
                         )
+                        FilterChip(
+                            selected = transport == "telemost",
+                            onClick = { transport = "telemost" },
+                            label = { Text(stringResource(R.string.profile_edit_transport_telemost)) },
+                        )
                     }
                     OutlinedTextField(
                         value = docUrl,
@@ -182,7 +187,7 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    listOf("yandex", "volga", "mailru", "boards", "mts").forEach { option ->
+                                    listOf("yandex", "volga", "mailru", "boards", "mts", "telemost").forEach { option ->
                                         FilterChip(
                                             selected = editTransport == option,
                                             onClick = { editTransport = option },
@@ -248,6 +253,7 @@ fun DeployKeysTab(viewModel: DeployServerDetailViewModel) {
 
 internal fun docUrlLabelRes(transport: String): Int = when (transport) {
     "mts" -> R.string.deploy_keys_doc_url_mts
+    "telemost" -> R.string.deploy_keys_doc_url_telemost
     "boards" -> R.string.deploy_keys_doc_url_boards
     "mailru" -> R.string.deploy_keys_doc_url_mailru
     else -> R.string.deploy_keys_doc_url_yandex

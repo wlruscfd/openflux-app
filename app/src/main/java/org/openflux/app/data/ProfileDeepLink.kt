@@ -60,7 +60,7 @@ object ProfileDeepLink {
             requestedMode
         }
         val e2e = json.optBoolean("e2e_encryption", false) &&
-            transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS
+            transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS && transport != ManualTransport.TELEMOST
         Profile(
             id = "",
             name = json.optString("name", ""),
