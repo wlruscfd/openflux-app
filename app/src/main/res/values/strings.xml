@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">OpenFlux</string>
 
@@ -306,7 +306,9 @@
 	<string name="deploy_keys_saved">Saved</string>
 	<string name="deploy_keys_edit_enabled">Enabled</string>
 	<string name="deploy_keys_edit_cancel">Cancel</string>
-	<string name="profile_edit_send_cookies">Send cookies to the exit node</string>
+	    <string name="profile_edit_refresh_doc">Refresh document from the node</string>
+    <string name="profile_edit_refresh_doc_running">Refreshing...</string>
+    <string name="profile_edit_send_cookies">Send cookies to the exit node</string>
 	<string name="profile_edit_send_cookies_hint">Solve the Yandex check in the browser window, and the cookie jar is uploaded straight to the controlplane and handed to the node running this key. The exit node cannot pass the check on its own, but it can use a jar solved here.</string>
 	<string name="profile_edit_send_cookies_ok">Cookies uploaded - the exit node will pick them up on its next poll.</string>
 	<string name="profile_edit_send_cookies_no_url">Set the control URL on this profile first.</string>

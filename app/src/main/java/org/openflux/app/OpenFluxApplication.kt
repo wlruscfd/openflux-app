@@ -4,11 +4,17 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.openflux.app.data.AppDatabase
 import org.openflux.app.data.CookiePushStore
 import org.openflux.app.data.DeployServerRepository
 import org.openflux.app.deploy.DeployManager
 import org.openflux.app.data.DeployServerSecretsStore
+import org.openflux.app.data.ProfileDocRefresher
 import org.openflux.app.data.ProfileHealthStore
 import org.openflux.app.data.ProfileRepository
 import org.openflux.app.data.SecretsStore
@@ -31,6 +37,9 @@ class OpenFluxApplication : Application() {
     lateinit var profileHealthStore: ProfileHealthStore
         private set
 
+    lateinit var docRefresher: ProfileDocRefresher
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
@@ -42,6 +51,12 @@ class OpenFluxApplication : Application() {
         cookiePushStore = CookiePushStore(this)
         DeployManager.init(this, deployServerRepository)
         profileHealthStore = ProfileHealthStore(this)
+        profileRepository = profileRepository
+        docRefresher = ProfileDocRefresher(
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            profileRepository = profileRepository,
+            socksPort = { runBlocking { settingsRepository.socks5Port.first() } },
+        ).also { it.start() }
 
         createVpnNotificationChannel()
         createSocks5NotificationChannel()

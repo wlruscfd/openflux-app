@@ -1,4 +1,4 @@
-package org.openflux.app.ui.profiles
+﻿package org.openflux.app.ui.profiles
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -164,6 +165,8 @@ fun ProfileEditScreen(
     var cookieSheetFor by remember { mutableStateOf<Profile?>(null) }
     var tunnelPickerOpen by remember { mutableStateOf(false) }
     var cookieTargetFor by remember { mutableStateOf<Profile?>(null) }
+    var refreshingDoc by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var cookieTunnelPending by remember { mutableStateOf(false) }
     var cookieTunnelError by remember { mutableStateOf<String?>(null) }
     val profiles by app.profileRepository.observeAll().collectAsState(initial = emptyList())
@@ -442,6 +445,26 @@ fun ProfileEditScreen(
                 Switch(
                     checked = current.autoReconnect,
                     onCheckedChange = { profile = current.copy(autoReconnect = it) },
+                )
+            }
+
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        refreshingDoc = true
+                        val port = socks5Port.takeIf { it > 0 } ?: 0
+                        val currentId = profile?.id ?: return@launch
+                        app.docRefresher.refreshOnce(viaTunnel = port > 0)
+                        profile = app.profileRepository.getById(currentId) ?: profile
+                        refreshingDoc = false
+                    }
+                },
+                enabled = !refreshingDoc,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Text(
+                    if (refreshingDoc) stringResource(R.string.profile_edit_refresh_doc_running)
+                    else stringResource(R.string.profile_edit_refresh_doc),
                 )
             }
 

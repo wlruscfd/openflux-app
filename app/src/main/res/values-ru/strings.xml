@@ -303,7 +303,9 @@
 	<string name="deploy_keys_doc_url_mailru">Ссылка на Mail.ru Boards</string>
 	<string name="deploy_keys_doc_url_yandex">Ссылка на Yandex Docs</string>
 	<string name="deploy_keys_saved">Сохранено</string>
-	<string name="profile_edit_send_cookies">Передать куки на exit-ноду</string>
+	    <string name="profile_edit_refresh_doc">Обновить документ с ноды</string>
+    <string name="profile_edit_refresh_doc_running">Обновляю...</string>
+    <string name="profile_edit_send_cookies">Передать куки на exit-ноду</string>
 	<string name="profile_edit_send_cookies_hint">Решите проверку Яндекса в окне браузера — куки уедут напрямую на controlplane и попадут к ноде, которая держит этот ключ. Нода проверку сама не проходит, но куки, решённые здесь, использовать может.</string>
 	<string name="profile_edit_send_cookies_ok">Куки отправлены — нода подхватит их при следующем опросе.</string>
 	<string name="profile_edit_send_cookies_no_url">Сначала укажите Control URL в этом профиле.</string>

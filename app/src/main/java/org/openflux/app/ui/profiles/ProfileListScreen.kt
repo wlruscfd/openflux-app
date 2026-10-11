@@ -36,7 +36,9 @@ import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
 import org.openflux.app.data.Profile
+import org.openflux.app.data.KeyResolver
 import org.openflux.app.data.ProfileDeepLink
+import org.openflux.app.data.parseTransportName
 import org.openflux.app.data.ProfileRepository
 import org.openflux.app.data.SettingsRepository
 
@@ -66,9 +68,29 @@ class ProfileListViewModel(
         }
     }
 
-    /** Saves an imported profile (from a deep link / QR / clipboard) as-is. */
+    /** Saves an imported profile, filling in a document the key has not published yet. */
     fun saveImported(profile: Profile) {
-        viewModelScope.launch { profileRepository.save(profile) }
+        viewModelScope.launch {
+            val saved = if (profile.docUrl.isBlank() && profile.docUrls.isEmpty()) {
+                val resolved = KeyResolver().resolve(profile.controlUrl, profile.keyToken)
+                if (resolved != null && (resolved.docUrl.isNotBlank() || resolved.docUrls.isNotEmpty())) {
+                    profile.copy(
+                        docUrl = resolved.docUrl,
+                        docUrls = resolved.docUrls,
+                        manualTransport = if (resolved.transportName.isNotBlank()) {
+                            parseTransportName(resolved.transportName)
+                        } else {
+                            profile.manualTransport
+                        },
+                    )
+                } else {
+                    profile
+                }
+            } else {
+                profile
+            }
+            profileRepository.save(saved)
+        }
     }
 }
 
