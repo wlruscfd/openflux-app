@@ -70,7 +70,7 @@ class ProfileRepository(
             dnsUpstream = dnsUpstream,
             forceBootstrapDns = forceBootstrapDns,
             autoReconnect = autoReconnect,
-            e2eEncryption = e2eEncryption && transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS && transport != ManualTransport.TELEMOST,
+            e2eEncryption = e2eEncryption && transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS && transport != ManualTransport.TELEMOST && transport != ManualTransport.CUPS,
         )
     }
 }
@@ -84,7 +84,7 @@ fun Profile.toStartTunnelConfigJson(
     put("mode", "manual")
     put("transport", transportName(manualTransport))
     when (manualTransport) {
-        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST -> put("doc_url", docUrl)
+        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST, ManualTransport.CUPS -> put("doc_url", docUrl)
         ManualTransport.MAX -> {
             put("max_token", maxToken)
             put("max_uid", maxUid)
@@ -96,7 +96,7 @@ fun Profile.toStartTunnelConfigJson(
     put("dns_upstream", dnsUpstream)
     if (keyToken.isNotBlank()) {
         put("key_token", keyToken)
-        if (e2eEncryption && manualTransport != ManualTransport.MAILRU && manualTransport != ManualTransport.BOARDS && manualTransport != ManualTransport.TELEMOST) {
+        if (e2eEncryption && manualTransport != ManualTransport.MAILRU && manualTransport != ManualTransport.BOARDS && manualTransport != ManualTransport.TELEMOST && manualTransport != ManualTransport.CUPS) {
             put("e2e_encryption", true)
         }
     }

@@ -86,6 +86,7 @@
     <string name="profile_edit_transport_boards">Yandex Boards</string>
     <string name="profile_edit_transport_mts">MTS Link Boards</string>
     <string name="profile_edit_transport_telemost">Telemost</string>
+    <string name="profile_edit_transport_cups">Cups</string>
     <string name="profile_edit_max_token">MAX account auth token</string>
     <string name="profile_edit_max_uid">Contact user ID to call</string>
     <string name="profile_edit_transport_multistream">Yandex Docs (multi-stream)</string>
@@ -298,6 +299,7 @@
 	<string name="deploy_keys_edit_hint">Changing the link, transport or encryption restarts this key on its node within a few seconds.</string>
 	<string name="deploy_keys_doc_url_mts">MTS Link Boards link</string>
 	<string name="deploy_keys_doc_url_telemost">Yandex Telemost conference link</string>
+	<string name="deploy_keys_doc_url_cups">cups.online room list</string>
 	<string name="deploy_keys_doc_url_boards">Yandex Boards link</string>
 	<string name="deploy_keys_doc_url_mailru">Mail.ru Boards link</string>
 	<string name="deploy_keys_doc_url_yandex">Yandex Docs link</string>
