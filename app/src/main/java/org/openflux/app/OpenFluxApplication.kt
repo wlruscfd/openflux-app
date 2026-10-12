@@ -7,7 +7,9 @@ import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.openflux.app.data.AppDatabase
 import org.openflux.app.data.CookiePushStore
@@ -19,6 +21,7 @@ import org.openflux.app.data.ProfileHealthStore
 import org.openflux.app.data.ProfileRepository
 import org.openflux.app.data.SecretsStore
 import org.openflux.app.data.SettingsRepository
+import org.openflux.app.data.TransportUpdater
 
 class OpenFluxApplication : Application() {
 
@@ -40,6 +43,9 @@ class OpenFluxApplication : Application() {
     lateinit var docRefresher: ProfileDocRefresher
         private set
 
+    lateinit var transportUpdater: TransportUpdater
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
@@ -57,6 +63,15 @@ class OpenFluxApplication : Application() {
             profileRepository = profileRepository,
             socksPort = { runBlocking { settingsRepository.socks5Port.first() } },
         ).also { it.start() }
+
+        transportUpdater = TransportUpdater(this, settingsRepository)
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            delay(TRANSPORT_UPDATE_FIRST_DELAY_MS)
+            while (true) {
+                if (transportUpdater.scriptsDir() != null) transportUpdater.checkNow()
+                delay(TRANSPORT_UPDATE_INTERVAL_MS)
+            }
+        }
 
         createVpnNotificationChannel()
         createSocks5NotificationChannel()
@@ -103,6 +118,8 @@ class OpenFluxApplication : Application() {
     }
 
     companion object {
+        private const val TRANSPORT_UPDATE_FIRST_DELAY_MS = 20_000L
+        private const val TRANSPORT_UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000L
         const val VPN_NOTIFICATION_CHANNEL_ID = "openflux_vpn"
         const val SOCKS5_NOTIFICATION_CHANNEL_ID = "openflux_socks5"
         const val ALERTS_NOTIFICATION_CHANNEL_ID = "openflux_alerts"

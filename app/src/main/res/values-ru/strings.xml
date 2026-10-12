@@ -338,4 +338,12 @@
     <string name="profile_edit_cookies_tunnel_failed">Не удалось поднять туннель: %1$s</string>
     <string name="profile_edit_cookies_tunnel_timeout">Туннель не поднялся за минуту. Выбери другой конфиг или попробуй снова - сам конфиг может быть в порядке, просто медленный.</string>
     <string name="profile_edit_cookies_pick_another">Выбрать другой конфиг</string>
+    <string name="settings_dynamic_transports">Обновление транспортов</string>
+    <string name="settings_dynamic_transports_hint">Фоном скачивает подписанные обновления транспортов, чтобы исправление для заблокированного сервиса приходило без новой версии приложения. Транспорт, который не подключается, откатывается на предыдущий или на встроенный.</string>
+    <string name="settings_transport_builtin">встроенный</string>
+    <string name="settings_transport_rollback">Откатить</string>
+    <string name="settings_transports_check">Проверить обновления транспортов</string>
+    <string name="settings_transports_updated">Обновлено: %1$d. Применится при следующем подключении.</string>
+    <string name="settings_transports_up_to_date">Транспорты актуальны.</string>
+    <string name="settings_transports_failed">Не удалось проверить обновления.</string>
 </resources>

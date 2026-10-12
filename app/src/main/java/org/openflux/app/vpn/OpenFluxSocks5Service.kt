@@ -91,7 +91,7 @@ class OpenFluxSocks5Service : Service() {
             runCatching { Mobile.stopSocks5Proxy() }
 
             try {
-                Mobile.startSocks5Proxy(profile.toStartTunnelConfigJson(), listenAddr, callback)
+                Mobile.startSocks5Proxy(profile.toStartTunnelConfigJson(scriptsDir = app.transportUpdater.scriptsDir()), listenAddr, callback)
                 Log.i("OpenFluxSocks5", "startSocks5Proxy returned normally")
             } catch (t: Throwable) {
                 Log.e("OpenFluxSocks5", "startSocks5Proxy threw: $t")

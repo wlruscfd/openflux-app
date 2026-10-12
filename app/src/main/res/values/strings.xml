@@ -341,4 +341,12 @@
     <string name="profile_edit_cookies_tunnel_failed">Could not start the tunnel: %1$s</string>
     <string name="profile_edit_cookies_tunnel_timeout">The tunnel did not come up in a minute. Pick another config or try again - the config itself may be fine, just slow.</string>
     <string name="profile_edit_cookies_pick_another">Choose another config</string>
+    <string name="settings_dynamic_transports">Transport updates</string>
+    <string name="settings_dynamic_transports_hint">Downloads signed transport updates in the background, so a fix for a blocked service reaches you without a new app version. A transport that fails to connect is rolled back to the previous one or to the built-in one.</string>
+    <string name="settings_transport_builtin">built-in</string>
+    <string name="settings_transport_rollback">Roll back</string>
+    <string name="settings_transports_check">Check for transport updates</string>
+    <string name="settings_transports_updated">Updated: %1$d. Applies on the next connect.</string>
+    <string name="settings_transports_up_to_date">Transports are up to date.</string>
+    <string name="settings_transports_failed">Could not check for updates.</string>
 </resources>

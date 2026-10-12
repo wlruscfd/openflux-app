@@ -80,6 +80,7 @@ fun Profile.toStartTunnelConfigJson(
     siteSplitMode: SplitTunnelMode = SplitTunnelMode.OFF,
     siteSplitSites: Set<String> = emptySet(),
     verboseLogging: Boolean = false,
+    scriptsDir: String? = null,
 ): String = JSONObject().apply {
     put("mode", "manual")
     put("transport", transportName(manualTransport))
@@ -105,6 +106,9 @@ fun Profile.toStartTunnelConfigJson(
     }
     if (verboseLogging) {
         put("verbose_logging", true)
+    }
+    if (scriptsDir != null) {
+        put("scripts_dir", scriptsDir)
     }
     if (siteSplitMode != SplitTunnelMode.OFF && siteSplitSites.isNotEmpty()) {
         // Lowercasing the enum name gives the wire strings ParseSiteSplitMode expects.

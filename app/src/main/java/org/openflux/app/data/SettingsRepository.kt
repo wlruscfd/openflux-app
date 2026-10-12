@@ -47,6 +47,9 @@ class SettingsRepository(private val context: Context) {
     val verboseLogging: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.VERBOSE_LOGGING] ?: false }
 
+    val dynamicTransports: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.DYNAMIC_TRANSPORTS] ?: true }
+
     val splitTunnelMode: Flow<SplitTunnelMode> =
         context.dataStore.data.map {
             runCatching { SplitTunnelMode.valueOf(it[Keys.SPLIT_TUNNEL_MODE] ?: "") }.getOrDefault(SplitTunnelMode.OFF)
@@ -92,6 +95,10 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.VERBOSE_LOGGING] = enabled }
     }
 
+    suspend fun setDynamicTransports(enabled: Boolean) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.DYNAMIC_TRANSPORTS] = enabled }
+    }
+
     suspend fun setSplitTunnelMode(mode: SplitTunnelMode) = withContext(NonCancellable) {
         context.dataStore.edit { it[Keys.SPLIT_TUNNEL_MODE] = mode.name }
     }
@@ -119,6 +126,7 @@ class SettingsRepository(private val context: Context) {
         val DEFAULT_MTU = intPreferencesKey("default_mtu")
         val DEFAULT_DNS = stringPreferencesKey("default_dns")
         val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
+        val DYNAMIC_TRANSPORTS = booleanPreferencesKey("dynamic_transports")
         val SPLIT_TUNNEL_MODE = stringPreferencesKey("split_tunnel_mode")
         val SPLIT_TUNNEL_APPS = stringSetPreferencesKey("split_tunnel_apps")
         val SPLIT_TUNNEL_SITES_MODE = stringPreferencesKey("split_tunnel_sites_mode")
