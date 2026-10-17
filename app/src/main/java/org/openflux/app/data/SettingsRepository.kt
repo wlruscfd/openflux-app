@@ -19,11 +19,46 @@ enum class SplitTunnelMode { OFF, EXCLUDE, INCLUDE }
 
 enum class ConnectionMode { VPN, SOCKS5 }
 
+/**
+ * Which visual design the app wears.
+ *
+ * CLASSIC is the fixed blue palette the app shipped with. DYNAMIC is full Material You: the palette
+ * comes from the wallpaper, and surfaces, corners and motion follow the system specs instead of the
+ * hand-tuned ones. SYSTEM follows the phone's light/dark setting, which is independent of the design.
+ */
+enum class ThemeDesign {
+    CLASSIC,
+    DYNAMIC;
+
+    companion object {
+        fun parse(raw: String?): ThemeDesign =
+            runCatching { ThemeDesign.valueOf(raw ?: "") }.getOrDefault(DYNAMIC)
+    }
+}
+
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** App-level (not per-profile) flexible settings. */
 class SettingsRepository(private val context: Context) {
 
     val activeProfileId: Flow<String?> =
         context.dataStore.data.map { it[Keys.ACTIVE_PROFILE_ID] }
+
+    val themeDesign: Flow<ThemeDesign> =
+        context.dataStore.data.map { ThemeDesign.parse(it[Keys.THEME_DESIGN]) }
+
+    suspend fun setThemeDesign(design: ThemeDesign) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.THEME_DESIGN] = design.name }
+    }
+
+    val themeMode: Flow<ThemeMode> =
+        context.dataStore.data.map {
+            runCatching { ThemeMode.valueOf(it[Keys.THEME_MODE] ?: "") }.getOrDefault(ThemeMode.SYSTEM)
+        }
+
+    suspend fun setThemeMode(mode: ThemeMode) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.THEME_MODE] = mode.name }
+    }
 
     // Distinct from activeProfileId (a UI-picker selection); this tracks what the tunnel is actually running.
     val lastConnectedProfileId: Flow<String?> =
@@ -142,6 +177,8 @@ class SettingsRepository(private val context: Context) {
 
     private object Keys {
         val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
+        val THEME_DESIGN = stringPreferencesKey("theme_design")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
         val LAST_CONNECTED_PROFILE_ID = stringPreferencesKey("last_connected_profile_id")
         val CONNECTION_MODE = stringPreferencesKey("connection_mode")
         val DEFAULT_MTU = intPreferencesKey("default_mtu")

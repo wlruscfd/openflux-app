@@ -426,4 +426,14 @@
     <string name="profile_edit_transport_script">Script</string>
     <string name="profile_edit_script_pick">Installed transport</string>
     <string name="profile_edit_script_none">No transports installed. Add one in Settings, JS transports.</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_dynamic">Material You</string>
+    <string name="settings_appearance_classic">Classic</string>
+    <string name="settings_appearance_dynamic_hint">Colours come from your wallpaper, with system rounding and motion. Android 12 and newer.</string>
+    <string name="settings_appearance_classic_hint">The app\'s fixed blue palette.</string>
+    <string name="settings_theme_mode_system">System</string>
+    <string name="settings_theme_mode_light">Light</string>
+    <string name="settings_theme_mode_dark">Dark</string>
 </resources>
+
+

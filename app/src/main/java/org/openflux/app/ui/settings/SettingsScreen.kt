@@ -52,6 +52,8 @@ import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
 import org.openflux.app.data.ConnectionMode
 import org.openflux.app.data.SettingsRepository
+import org.openflux.app.data.ThemeDesign
+import org.openflux.app.data.ThemeMode
 
 private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
     val powerManager = context.getSystemService<PowerManager>() ?: return true
@@ -64,12 +66,22 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     val defaultDns = repository.defaultDns
     val verboseLogging = repository.verboseLogging
     val socks5Port = repository.socks5Port
+    val themeDesign = repository.themeDesign
+    val themeMode = repository.themeMode
 
+    fun setThemeDesign(design: ThemeDesign) = viewModelScope.launch { repository.setThemeDesign(design) }
+    fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { repository.setThemeMode(mode) }
     fun setConnectionMode(mode: ConnectionMode) = viewModelScope.launch { repository.setConnectionMode(mode) }
     fun setDefaultMtu(mtu: Int) = viewModelScope.launch { repository.setDefaultMtu(mtu) }
     fun setDefaultDns(dns: String) = viewModelScope.launch { repository.setDefaultDns(dns) }
     fun setVerboseLogging(enabled: Boolean) = viewModelScope.launch { repository.setVerboseLogging(enabled) }
     fun setSocks5Port(port: Int) = viewModelScope.launch { repository.setSocks5Port(port) }
+}
+
+private fun themeModeLabel(mode: ThemeMode): Int = when (mode) {
+    ThemeMode.SYSTEM -> R.string.settings_theme_mode_system
+    ThemeMode.LIGHT -> R.string.settings_theme_mode_light
+    ThemeMode.DARK -> R.string.settings_theme_mode_dark
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -82,6 +94,8 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
 
     val verboseLogging by viewModel.verboseLogging.collectAsState(initial = false)
     val connectionMode by viewModel.connectionMode.collectAsState(initial = ConnectionMode.VPN)
+    val themeDesign by viewModel.themeDesign.collectAsState(initial = ThemeDesign.DYNAMIC)
+    val themeMode by viewModel.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
 
     // Not collectAsState: round-tripping every keystroke through the DataStore Flow made typing feel laggy.
     var mtuText by remember { mutableStateOf<String?>(null) }
@@ -111,6 +125,46 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
         Column(
             Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
         ) {
+            Text(
+                stringResource(R.string.settings_appearance),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                SegmentedButton(
+                    selected = themeDesign == ThemeDesign.DYNAMIC,
+                    onClick = { viewModel.setThemeDesign(ThemeDesign.DYNAMIC) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                ) { Text(stringResource(R.string.settings_appearance_dynamic)) }
+                SegmentedButton(
+                    selected = themeDesign == ThemeDesign.CLASSIC,
+                    onClick = { viewModel.setThemeDesign(ThemeDesign.CLASSIC) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                ) { Text(stringResource(R.string.settings_appearance_classic)) }
+            }
+            Text(
+                stringResource(
+                    if (themeDesign == ThemeDesign.DYNAMIC) {
+                        R.string.settings_appearance_dynamic_hint
+                    } else {
+                        R.string.settings_appearance_classic_hint
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                ThemeMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = themeMode == mode,
+                        onClick = { viewModel.setThemeMode(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
+                    ) { Text(stringResource(themeModeLabel(mode))) }
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+
             Text(
                 stringResource(R.string.settings_connection_mode),
                 style = MaterialTheme.typography.titleSmall,

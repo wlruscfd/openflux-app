@@ -2,19 +2,24 @@ package org.openflux.app.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import org.openflux.app.data.ThemeDesign
+
+private val ThemeTween = tween<Color>(durationMillis = 420, easing = androidx.compose.animation.core.FastOutSlowInEasing)
 
 // Every role is set explicitly; anything left unset falls back to M3's stock purple baseline.
 private val DarkColors = darkColorScheme(
@@ -95,21 +100,25 @@ private val LightColors = lightColorScheme(
     inverseOnSurface = Color(0xFFF1F4F9),
 )
 
-// On Android 12+, uses Material You dynamic color from the device wallpaper; otherwise falls back to the fixed palette.
+/**
+ * The app's theme. [design] picks the visual language: CLASSIC is the fixed palette, DYNAMIC is
+ * Material You. [darkTheme] decides light or dark and normally follows the system.
+ *
+ * Switching either animates rather than snapping: colours cross-fade over a short spring, so a
+ * design change reads as the app changing rather than the screen flashing.
+ */
 @Composable
 fun OpenFluxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    design: ThemeDesign = ThemeDesign.DYNAMIC,
     content: @Composable () -> Unit,
 ) {
-    val colors = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColors
-        else -> LightColors
+    val target = when (design) {
+        ThemeDesign.DYNAMIC -> dynamicColorScheme(darkTheme)
+        ThemeDesign.CLASSIC -> if (darkTheme) DarkColors else LightColors
     }
+    val colors = animatedColorScheme(target)
+    val shapes = OpenFluxShapesFor(design)
 
     // Recolors the system status/nav bars to match, instead of leaving the pre-Compose window theme's color.
     val view = LocalView.current
@@ -124,10 +133,96 @@ fun OpenFluxTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colors,
-        typography = OpenFluxTypography,
-        shapes = OpenFluxShapes,
-        content = content,
+    CompositionLocalProvider(LocalThemeMotion provides ThemeMotion(design == ThemeDesign.DYNAMIC)) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = OpenFluxTypography,
+            shapes = shapes,
+            content = content,
+        )
+    }
+}
+
+/**
+ * Cross-fades every role of the scheme instead of swapping it. A design change then reads as the
+ * app recolouring itself rather than a hard cut, which is most of what makes the switch feel finished
+ * rather than merely different.
+ */
+@Composable
+private fun animatedColorScheme(target: ColorScheme): ColorScheme {
+    val primary by animateColorAsState(target.primary, ThemeTween)
+    val onPrimary by animateColorAsState(target.onPrimary, ThemeTween)
+    val primaryContainer by animateColorAsState(target.primaryContainer, ThemeTween)
+    val onPrimaryContainer by animateColorAsState(target.onPrimaryContainer, ThemeTween)
+    val inversePrimary by animateColorAsState(target.inversePrimary, ThemeTween)
+    val secondary by animateColorAsState(target.secondary, ThemeTween)
+    val onSecondary by animateColorAsState(target.onSecondary, ThemeTween)
+    val secondaryContainer by animateColorAsState(target.secondaryContainer, ThemeTween)
+    val onSecondaryContainer by animateColorAsState(target.onSecondaryContainer, ThemeTween)
+    val tertiary by animateColorAsState(target.tertiary, ThemeTween)
+    val onTertiary by animateColorAsState(target.onTertiary, ThemeTween)
+    val tertiaryContainer by animateColorAsState(target.tertiaryContainer, ThemeTween)
+    val onTertiaryContainer by animateColorAsState(target.onTertiaryContainer, ThemeTween)
+    val error by animateColorAsState(target.error, ThemeTween)
+    val onError by animateColorAsState(target.onError, ThemeTween)
+    val errorContainer by animateColorAsState(target.errorContainer, ThemeTween)
+    val onErrorContainer by animateColorAsState(target.onErrorContainer, ThemeTween)
+    val background by animateColorAsState(target.background, ThemeTween)
+    val onBackground by animateColorAsState(target.onBackground, ThemeTween)
+    val surface by animateColorAsState(target.surface, ThemeTween)
+    val onSurface by animateColorAsState(target.onSurface, ThemeTween)
+    val surfaceVariant by animateColorAsState(target.surfaceVariant, ThemeTween)
+    val onSurfaceVariant by animateColorAsState(target.onSurfaceVariant, ThemeTween)
+    val surfaceTint by animateColorAsState(target.surfaceTint, ThemeTween)
+    val surfaceDim by animateColorAsState(target.surfaceDim, ThemeTween)
+    val surfaceBright by animateColorAsState(target.surfaceBright, ThemeTween)
+    val surfaceContainerLowest by animateColorAsState(target.surfaceContainerLowest, ThemeTween)
+    val surfaceContainerLow by animateColorAsState(target.surfaceContainerLow, ThemeTween)
+    val surfaceContainer by animateColorAsState(target.surfaceContainer, ThemeTween)
+    val surfaceContainerHigh by animateColorAsState(target.surfaceContainerHigh, ThemeTween)
+    val surfaceContainerHighest by animateColorAsState(target.surfaceContainerHighest, ThemeTween)
+    val outline by animateColorAsState(target.outline, ThemeTween)
+    val outlineVariant by animateColorAsState(target.outlineVariant, ThemeTween)
+    val scrim by animateColorAsState(target.scrim, ThemeTween)
+    val inverseSurface by animateColorAsState(target.inverseSurface, ThemeTween)
+    val inverseOnSurface by animateColorAsState(target.inverseOnSurface, ThemeTween)
+
+    return target.copy(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        inversePrimary = inversePrimary,
+        secondary = secondary,
+        onSecondary = onSecondary,
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = onSecondaryContainer,
+        tertiary = tertiary,
+        onTertiary = onTertiary,
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = onTertiaryContainer,
+        error = error,
+        onError = onError,
+        errorContainer = errorContainer,
+        onErrorContainer = onErrorContainer,
+        background = background,
+        onBackground = onBackground,
+        surface = surface,
+        onSurface = onSurface,
+        surfaceVariant = surfaceVariant,
+        onSurfaceVariant = onSurfaceVariant,
+        surfaceTint = surfaceTint,
+        surfaceDim = surfaceDim,
+        surfaceBright = surfaceBright,
+        surfaceContainerLowest = surfaceContainerLowest,
+        surfaceContainerLow = surfaceContainerLow,
+        surfaceContainer = surfaceContainer,
+        surfaceContainerHigh = surfaceContainerHigh,
+        surfaceContainerHighest = surfaceContainerHighest,
+        outline = outline,
+        outlineVariant = outlineVariant,
+        scrim = scrim,
+        inverseSurface = inverseSurface,
+        inverseOnSurface = inverseOnSurface,
     )
 }

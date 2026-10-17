@@ -8,11 +8,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import org.openflux.app.data.SettingsRepository
+import org.openflux.app.data.ThemeDesign
+import org.openflux.app.data.ThemeMode
 import org.openflux.app.ui.OpenFluxNavHost
 import org.openflux.app.ui.theme.OpenFluxTheme
 import org.openflux.app.vpn.OpenFluxSocks5Service
@@ -50,8 +56,17 @@ class MainActivity : ComponentActivity() {
         handleTileConnectIntent(intent)
 
         setContent {
+            val settings = remember { SettingsRepository(applicationContext) }
+            val design by settings.themeDesign.collectAsState(initial = ThemeDesign.DYNAMIC)
+            val mode by settings.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val systemDark = isSystemInDarkTheme()
+            val darkTheme = when (mode) {
+                ThemeMode.SYSTEM -> systemDark
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
             CompositionLocalProvider(LocalOpenFluxApp provides application as OpenFluxApplication) {
-                OpenFluxTheme {
+                OpenFluxTheme(darkTheme = darkTheme, design = design) {
                     OpenFluxNavHost(
                         onConnectRequested = ::requestConnect,
                         onDisconnectRequested = ::disconnect,
