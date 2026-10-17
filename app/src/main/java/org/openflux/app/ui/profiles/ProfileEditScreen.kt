@@ -296,6 +296,12 @@ fun ProfileEditScreen(
                             label = { Text(stringResource(R.string.profile_edit_transport_cups)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.AVITO,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.AVITO) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_avito)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
                     }
                     if (current.manualTransport == ManualTransport.YANDEX_MULTISTREAM) {
                         OutlinedTextField(
@@ -370,7 +376,7 @@ fun ProfileEditScreen(
                         )
                     }
                     when (current.manualTransport) {
-                        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST, ManualTransport.CUPS -> {
+                        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST, ManualTransport.CUPS, ManualTransport.AVITO -> {
                             OutlinedTextField(
                                 value = current.docUrl,
                                 onValueChange = { profile = current.copy(docUrl = it) },
