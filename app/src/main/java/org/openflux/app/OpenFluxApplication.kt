@@ -68,7 +68,7 @@ class OpenFluxApplication : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             delay(TRANSPORT_UPDATE_FIRST_DELAY_MS)
             while (true) {
-                if (transportUpdater.scriptsDir() != null) transportUpdater.checkNow()
+                if (transportUpdater.scriptsDir() != null && settingsRepository.transportsAutoUpdate.first()) transportUpdater.updateAll()
                 delay(TRANSPORT_UPDATE_INTERVAL_MS)
             }
         }

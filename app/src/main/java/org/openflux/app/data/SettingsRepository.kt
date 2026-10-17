@@ -50,6 +50,15 @@ class SettingsRepository(private val context: Context) {
     val dynamicTransports: Flow<Boolean> =
         context.dataStore.data.map { it[Keys.DYNAMIC_TRANSPORTS] ?: true }
 
+    val transportsCatalogUrl: Flow<String> =
+        context.dataStore.data.map { it[Keys.TRANSPORTS_CATALOG_URL] ?: "" }
+
+    val transportsChannel: Flow<String> =
+        context.dataStore.data.map { it[Keys.TRANSPORTS_CHANNEL] ?: "stable" }
+
+    val transportsAutoUpdate: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.TRANSPORTS_AUTO_UPDATE] ?: true }
+
     val splitTunnelMode: Flow<SplitTunnelMode> =
         context.dataStore.data.map {
             runCatching { SplitTunnelMode.valueOf(it[Keys.SPLIT_TUNNEL_MODE] ?: "") }.getOrDefault(SplitTunnelMode.OFF)
@@ -99,6 +108,18 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.DYNAMIC_TRANSPORTS] = enabled }
     }
 
+    suspend fun setTransportsCatalogUrl(url: String) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.TRANSPORTS_CATALOG_URL] = url.trim() }
+    }
+
+    suspend fun setTransportsChannel(channel: String) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.TRANSPORTS_CHANNEL] = channel }
+    }
+
+    suspend fun setTransportsAutoUpdate(enabled: Boolean) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.TRANSPORTS_AUTO_UPDATE] = enabled }
+    }
+
     suspend fun setSplitTunnelMode(mode: SplitTunnelMode) = withContext(NonCancellable) {
         context.dataStore.edit { it[Keys.SPLIT_TUNNEL_MODE] = mode.name }
     }
@@ -127,6 +148,9 @@ class SettingsRepository(private val context: Context) {
         val DEFAULT_DNS = stringPreferencesKey("default_dns")
         val VERBOSE_LOGGING = booleanPreferencesKey("verbose_logging")
         val DYNAMIC_TRANSPORTS = booleanPreferencesKey("dynamic_transports")
+        val TRANSPORTS_CATALOG_URL = stringPreferencesKey("transports_catalog_url")
+        val TRANSPORTS_CHANNEL = stringPreferencesKey("transports_channel")
+        val TRANSPORTS_AUTO_UPDATE = booleanPreferencesKey("transports_auto_update")
         val SPLIT_TUNNEL_MODE = stringPreferencesKey("split_tunnel_mode")
         val SPLIT_TUNNEL_APPS = stringSetPreferencesKey("split_tunnel_apps")
         val SPLIT_TUNNEL_SITES_MODE = stringPreferencesKey("split_tunnel_sites_mode")

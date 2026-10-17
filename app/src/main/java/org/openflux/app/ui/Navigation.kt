@@ -56,6 +56,7 @@ import org.openflux.app.ui.profiles.QrScanScreen
 import org.openflux.app.ui.settings.SettingsScreen
 import org.openflux.app.ui.settings.SiteSplitTunnelScreen
 import org.openflux.app.ui.settings.SplitTunnelScreen
+import org.openflux.app.ui.settings.TransportsScreen
 import org.openflux.app.vpn.OpenFluxSocks5Service
 import org.openflux.app.vpn.OpenFluxVpnService
 
@@ -75,6 +76,7 @@ private const val DEPLOY_ID_ARG = "serverId"
 private const val SPLIT_TUNNEL_ROUTE = "split_tunnel"
 private const val QR_SCAN_ROUTE = "qr_scan"
 private const val SITE_SPLIT_TUNNEL_ROUTE = "site_split_tunnel"
+private const val TRANSPORTS_ROUTE = "transports"
 
 private val TAB_ROUTES = setOf(
     Destination.Home.route,
@@ -291,7 +293,11 @@ fun OpenFluxNavHost(
                 SettingsScreen(
                     onOpenSplitTunnel = { navController.navigate(SPLIT_TUNNEL_ROUTE) },
                     onOpenSiteSplitTunnel = { navController.navigate(SITE_SPLIT_TUNNEL_ROUTE) },
+                    onOpenTransports = { navController.navigate(TRANSPORTS_ROUTE) },
                 )
+            }
+            composable(TRANSPORTS_ROUTE) {
+                TransportsScreen(onDone = { navController.popBackStack() })
             }
             composable(SPLIT_TUNNEL_ROUTE) {
                 SplitTunnelScreen(onDone = { navController.popBackStack() })

@@ -8,7 +8,7 @@ const val BALANCER_PROFILE_ID = "__balancer__"
 enum class ProfileMode { KEY, MANUAL }
 
 // Despite the name, this is set for both profile modes - see ProfileEditScreen.
-enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM, MAILRU, BOARDS, MTS, TELEMOST, CUPS, AVITO }
+enum class ManualTransport { YANDEX, VOLGA, MAX, YANDEX_MULTISTREAM, MAILRU, BOARDS, MTS, TELEMOST, CUPS, AVITO, SCRIPT }
 
 /** The wire name mobile.Config and deep links use for a transport - see mobile/mobile.go. */
 fun transportName(t: ManualTransport): String = when (t) {
@@ -22,6 +22,7 @@ fun transportName(t: ManualTransport): String = when (t) {
     ManualTransport.TELEMOST -> "telemost"
     ManualTransport.CUPS -> "cupsonline"
     ManualTransport.AVITO -> "avito"
+    ManualTransport.SCRIPT -> "script"
 }
 
 fun parseTransportName(name: String): ManualTransport = when (name) {
@@ -34,6 +35,7 @@ fun parseTransportName(name: String): ManualTransport = when (name) {
     "telemost" -> ManualTransport.TELEMOST
     "cupsonline" -> ManualTransport.CUPS
     "avito" -> ManualTransport.AVITO
+    "script" -> ManualTransport.SCRIPT
     else -> ManualTransport.YANDEX
 }
 
@@ -48,6 +50,7 @@ fun transportLabel(t: ManualTransport): String = when (t) {
     ManualTransport.TELEMOST -> "Telemost"
     ManualTransport.CUPS -> "Cups"
     ManualTransport.AVITO -> "Avito"
+    ManualTransport.SCRIPT -> "Script"
 }
 
 // [ProfileEntity]'s non-secret fields joined with the secret material [SecretsStore] holds for the same id.
@@ -59,6 +62,7 @@ data class Profile(
     val keyToken: String = "",
     val manualTransport: ManualTransport = ManualTransport.YANDEX,
     val docUrl: String = "",
+    val scriptId: String = "",
     // YANDEX_MULTISTREAM only: 2+ independent doc URLs; the exit node needs the exact same list (any order).
     val docUrls: List<String> = emptyList(),
     val maxToken: String = "",

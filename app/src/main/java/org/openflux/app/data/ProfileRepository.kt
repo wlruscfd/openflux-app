@@ -40,6 +40,7 @@ class ProfileRepository(
                 controlUrl = profile.controlUrl,
                 keyToken = profile.keyToken,
                 docUrl = profile.docUrl,
+                scriptId = profile.scriptId,
                 docUrls = profile.docUrls,
                 maxToken = profile.maxToken,
                 maxUid = profile.maxUid,
@@ -63,6 +64,7 @@ class ProfileRepository(
             keyToken = s.keyToken,
             manualTransport = transport,
             docUrl = s.docUrl,
+            scriptId = s.scriptId,
             docUrls = s.docUrls,
             maxToken = s.maxToken,
             maxUid = s.maxUid,
@@ -70,7 +72,7 @@ class ProfileRepository(
             dnsUpstream = dnsUpstream,
             forceBootstrapDns = forceBootstrapDns,
             autoReconnect = autoReconnect,
-            e2eEncryption = e2eEncryption && transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS && transport != ManualTransport.TELEMOST && transport != ManualTransport.CUPS && transport != ManualTransport.AVITO,
+            e2eEncryption = e2eEncryption && transport != ManualTransport.MAILRU && transport != ManualTransport.BOARDS && transport != ManualTransport.TELEMOST && transport != ManualTransport.CUPS && transport != ManualTransport.AVITO && transport != ManualTransport.SCRIPT,
         )
     }
 }
@@ -86,6 +88,10 @@ fun Profile.toStartTunnelConfigJson(
     put("transport", transportName(manualTransport))
     when (manualTransport) {
         ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST, ManualTransport.CUPS, ManualTransport.AVITO -> put("doc_url", docUrl)
+        ManualTransport.SCRIPT -> {
+            put("script_id", scriptId)
+            put("doc_url", docUrl)
+        }
         ManualTransport.MAX -> {
             put("max_token", maxToken)
             put("max_uid", maxUid)
@@ -97,7 +103,7 @@ fun Profile.toStartTunnelConfigJson(
     put("dns_upstream", dnsUpstream)
     if (keyToken.isNotBlank()) {
         put("key_token", keyToken)
-        if (e2eEncryption && manualTransport != ManualTransport.MAILRU && manualTransport != ManualTransport.BOARDS && manualTransport != ManualTransport.TELEMOST && manualTransport != ManualTransport.CUPS && manualTransport != ManualTransport.AVITO) {
+        if (e2eEncryption && manualTransport != ManualTransport.MAILRU && manualTransport != ManualTransport.BOARDS && manualTransport != ManualTransport.TELEMOST && manualTransport != ManualTransport.CUPS && manualTransport != ManualTransport.AVITO && manualTransport != ManualTransport.SCRIPT) {
             put("e2e_encryption", true)
         }
     }

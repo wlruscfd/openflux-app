@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -160,6 +161,8 @@ fun ProfileEditScreen(
     )
     val defaultMtu by app.settingsRepository.defaultMtu.collectAsState(initial = 1400)
     val defaultDns by app.settingsRepository.defaultDns.collectAsState(initial = "77.88.8.8")
+    var installedScripts by remember { mutableStateOf<List<org.openflux.app.data.TransportInfo>>(emptyList()) }
+    LaunchedEffect(Unit) { installedScripts = app.transportUpdater.list() }
 
     var profile by remember { mutableStateOf<Profile?>(null) }
     var cookieSheetFor by remember { mutableStateOf<Profile?>(null) }
@@ -302,6 +305,30 @@ fun ProfileEditScreen(
                             label = { Text(stringResource(R.string.profile_edit_transport_avito)) },
                             modifier = Modifier.padding(start = 8.dp),
                         )
+                        FilterChip(
+                            selected = current.manualTransport == ManualTransport.SCRIPT,
+                            onClick = { profile = current.copy(manualTransport = ManualTransport.SCRIPT) },
+                            label = { Text(stringResource(R.string.profile_edit_transport_script)) },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    if (current.manualTransport == ManualTransport.SCRIPT) {
+                        Text(
+                            stringResource(if (installedScripts.isEmpty()) R.string.profile_edit_script_none else R.string.profile_edit_script_pick),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                            installedScripts.forEach { script ->
+                                FilterChip(
+                                    selected = current.scriptId == script.id,
+                                    onClick = { profile = current.copy(scriptId = script.id) },
+                                    label = { Text(script.name) },
+                                    modifier = Modifier.padding(end = 8.dp),
+                                )
+                            }
+                        }
                     }
                     if (current.manualTransport == ManualTransport.YANDEX_MULTISTREAM) {
                         OutlinedTextField(
@@ -376,7 +403,7 @@ fun ProfileEditScreen(
                         )
                     }
                     when (current.manualTransport) {
-                        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST, ManualTransport.CUPS, ManualTransport.AVITO -> {
+                        ManualTransport.YANDEX, ManualTransport.VOLGA, ManualTransport.MAILRU, ManualTransport.BOARDS, ManualTransport.MTS, ManualTransport.TELEMOST, ManualTransport.CUPS, ManualTransport.AVITO, ManualTransport.SCRIPT -> {
                             OutlinedTextField(
                                 value = current.docUrl,
                                 onValueChange = { profile = current.copy(docUrl = it) },

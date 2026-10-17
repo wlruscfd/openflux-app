@@ -23,7 +23,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -52,19 +51,14 @@ import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
 import org.openflux.app.data.ConnectionMode
-import org.openflux.app.data.InstalledTransport
 import org.openflux.app.data.SettingsRepository
-import org.openflux.app.data.TransportUpdater
 
 private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
     val powerManager = context.getSystemService<PowerManager>() ?: return true
     return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
 
-class SettingsViewModel(
-    private val repository: SettingsRepository,
-    private val transports: TransportUpdater,
-) : ViewModel() {
+class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
     val connectionMode = repository.connectionMode
     val defaultMtu = repository.defaultMtu
     val defaultDns = repository.defaultDns
@@ -76,61 +70,17 @@ class SettingsViewModel(
     fun setDefaultDns(dns: String) = viewModelScope.launch { repository.setDefaultDns(dns) }
     fun setVerboseLogging(enabled: Boolean) = viewModelScope.launch { repository.setVerboseLogging(enabled) }
     fun setSocks5Port(port: Int) = viewModelScope.launch { repository.setSocks5Port(port) }
-
-    val dynamicTransports = repository.dynamicTransports
-    fun setDynamicTransports(enabled: Boolean) = viewModelScope.launch { repository.setDynamicTransports(enabled) }
-
-    var installedTransports by mutableStateOf<List<InstalledTransport>>(emptyList())
-        private set
-    var transportsStatus by mutableStateOf<TransportsStatus>(TransportsStatus.Idle)
-        private set
-
-    init {
-        refreshInstalled()
-    }
-
-    private fun refreshInstalled() {
-        viewModelScope.launch { installedTransports = transports.installed() }
-    }
-
-    fun checkTransports() {
-        if (transportsStatus == TransportsStatus.Checking) return
-        transportsStatus = TransportsStatus.Checking
-        viewModelScope.launch {
-            val result = transports.checkNow()
-            transportsStatus = result.fold(
-                onSuccess = { list -> TransportsStatus.Done(list.count { it.status == "installed" }) },
-                onFailure = { TransportsStatus.Failed },
-            )
-            refreshInstalled()
-        }
-    }
-
-    fun rollbackTransport(id: String) {
-        viewModelScope.launch {
-            transports.rollback(id)
-            refreshInstalled()
-        }
-    }
-}
-
-sealed interface TransportsStatus {
-    data object Idle : TransportsStatus
-    data object Checking : TransportsStatus
-    data class Done(val installed: Int) : TransportsStatus
-    data object Failed : TransportsStatus
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> Unit) {
+fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> Unit, onOpenTransports: () -> Unit) {
     val app = LocalOpenFluxApp.current
     val viewModel: SettingsViewModel = viewModel(
-        factory = viewModelFactory { initializer { SettingsViewModel(app.settingsRepository, app.transportUpdater) } },
+        factory = viewModelFactory { initializer { SettingsViewModel(app.settingsRepository) } },
     )
 
     val verboseLogging by viewModel.verboseLogging.collectAsState(initial = false)
-    val dynamicTransports by viewModel.dynamicTransports.collectAsState(initial = true)
     val connectionMode by viewModel.connectionMode.collectAsState(initial = ConnectionMode.VPN)
 
     // Not collectAsState: round-tripping every keystroke through the DataStore Flow made typing feel laggy.
@@ -242,62 +192,11 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Row(
+            OutlinedButton(
+                onClick = onOpenTransports,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    stringResource(R.string.settings_dynamic_transports),
-                    modifier = Modifier.weight(1f).padding(end = 12.dp),
-                )
-                Switch(checked = dynamicTransports, onCheckedChange = viewModel::setDynamicTransports)
-            }
-            Text(
-                stringResource(R.string.settings_dynamic_transports_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (dynamicTransports) {
-                viewModel.installedTransports.forEach { t ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "${t.id} ${t.version}" + if (t.disabled) " (${stringResource(R.string.settings_transport_builtin)})" else "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f).padding(end = 12.dp),
-                        )
-                        if (t.hasPrevious || !t.disabled) {
-                            TextButton(onClick = { viewModel.rollbackTransport(t.id) }) {
-                                Text(stringResource(R.string.settings_transport_rollback))
-                            }
-                        }
-                    }
-                }
-                OutlinedButton(
-                    onClick = viewModel::checkTransports,
-                    enabled = viewModel.transportsStatus != TransportsStatus.Checking,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                ) {
-                    Text(stringResource(R.string.settings_transports_check))
-                }
-                when (val st = viewModel.transportsStatus) {
-                    TransportsStatus.Idle, TransportsStatus.Checking -> Unit
-                    is TransportsStatus.Done -> Text(
-                        if (st.installed > 0) stringResource(R.string.settings_transports_updated, st.installed)
-                        else stringResource(R.string.settings_transports_up_to_date),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TransportsStatus.Failed -> Text(
-                        stringResource(R.string.settings_transports_failed),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                Text(stringResource(R.string.settings_js_transports))
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
