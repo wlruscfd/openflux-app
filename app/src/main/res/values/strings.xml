@@ -434,6 +434,8 @@
     <string name="settings_theme_mode_system">System</string>
     <string name="settings_theme_mode_light">Light</string>
     <string name="settings_theme_mode_dark">Dark</string>
+    <string name="settings_network">Network</string>
+    <string name="settings_diagnostics">Diagnostics and battery</string>
 </resources>
 
 

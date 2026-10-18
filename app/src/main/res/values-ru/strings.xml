@@ -431,6 +431,8 @@
     <string name="settings_theme_mode_system">Как в системе</string>
     <string name="settings_theme_mode_light">Светлая</string>
     <string name="settings_theme_mode_dark">Тёмная</string>
+    <string name="settings_network">Сеть</string>
+    <string name="settings_diagnostics">Диагностика и батарея</string>
 </resources>
 
 

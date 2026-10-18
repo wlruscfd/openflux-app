@@ -3,7 +3,9 @@ package org.openflux.app.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -20,8 +22,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +43,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.openflux.app.R
+import org.openflux.app.ui.design.FloatingNavBar
+import org.openflux.app.ui.design.NavBarItem
 import org.openflux.app.data.Profile
 import org.openflux.app.data.ProfileDeepLink
 import org.openflux.app.ui.deploy.DeployListScreen
@@ -130,28 +132,19 @@ fun OpenFluxNavHost(
         bottomBar = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
-            if (currentDestination?.route in TAB_ROUTES || !keyboardOpen) NavigationBar {
-                tabs.forEach { tab ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                // No saveState/restoreState: it previously let a stale "new profile" draft reappear.
-                                popUpTo(navController.graph.findStartDestination().id)
-                                launchSingleTop = true
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = null) },
-                        label = {
-                            Text(
-                                stringResourceCompat(tab.labelRes),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                    )
-                }
+            if (currentDestination?.route in TAB_ROUTES || !keyboardOpen) {
+                val navItems = tabs.map { NavBarItem(it.route, stringResourceCompat(it.labelRes), it.icon) }
+                val selectedRoute = tabs.firstOrNull { tab -> currentDestination?.hierarchy?.any { it.route == tab.route } == true }?.route
+                FloatingNavBar(
+                    items = navItems,
+                    selectedRoute = selectedRoute,
+                    onSelect = { item ->
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
         },
     ) { padding ->
@@ -161,9 +154,11 @@ fun OpenFluxNavHost(
             modifier = androidx.compose.ui.Modifier.padding(padding),
             enterTransition = {
                 if (isTabSwitch()) {
-                    fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
+                    fadeIn(tween(TAB_FADE_MS, delayMillis = 60)) +
+                        scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)) +
+                        slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 24 }
                 } else {
-                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(PUSH_SLIDE_MS)) +
+                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, spring(dampingRatio = 0.86f, stiffness = 340f)) { it / 3 } +
                         fadeIn(tween(PUSH_SLIDE_MS))
                 }
             },
@@ -171,15 +166,17 @@ fun OpenFluxNavHost(
                 if (isTabSwitch()) {
                     fadeOut(tween(TAB_FADE_MS)) + scaleOut(targetScale = TAB_SCALE_OUT_END, animationSpec = tween(TAB_FADE_MS))
                 } else {
-                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(PUSH_SLIDE_MS)) +
-                        fadeOut(tween(PUSH_SLIDE_MS))
+                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, spring(dampingRatio = 0.9f, stiffness = 340f)) { it / 5 } +
+                        fadeOut(tween(PUSH_SLIDE_MS / 2))
                 }
             },
             popEnterTransition = {
                 if (isTabSwitch()) {
-                    fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
+                    fadeIn(tween(TAB_FADE_MS, delayMillis = 60)) +
+                        scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)) +
+                        slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 24 }
                 } else {
-                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(PUSH_SLIDE_MS)) +
+                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, spring(dampingRatio = 0.9f, stiffness = 340f)) { it / 5 } +
                         fadeIn(tween(PUSH_SLIDE_MS))
                 }
             },
@@ -187,8 +184,8 @@ fun OpenFluxNavHost(
                 if (isTabSwitch()) {
                     fadeOut(tween(TAB_FADE_MS)) + scaleOut(targetScale = TAB_SCALE_OUT_END, animationSpec = tween(TAB_FADE_MS))
                 } else {
-                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(PUSH_SLIDE_MS)) +
-                        fadeOut(tween(PUSH_SLIDE_MS))
+                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, spring(dampingRatio = 0.86f, stiffness = 340f)) { it / 3 } +
+                        fadeOut(tween(PUSH_SLIDE_MS / 2))
                 }
             },
         ) {

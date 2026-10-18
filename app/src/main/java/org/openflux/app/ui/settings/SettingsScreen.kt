@@ -49,6 +49,19 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import org.openflux.app.ui.design.SettingsSection
+import androidx.compose.material.icons.Icons
 import org.openflux.app.R
 import org.openflux.app.data.ConnectionMode
 import org.openflux.app.data.SettingsRepository
@@ -121,181 +134,187 @@ fun SettingsScreen(onOpenSplitTunnel: () -> Unit, onOpenSiteSplitTunnel: () -> U
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+    ) { padding ->
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
+            Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
         ) {
-            Text(
-                stringResource(R.string.settings_appearance),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                SegmentedButton(
-                    selected = themeDesign == ThemeDesign.DYNAMIC,
-                    onClick = { viewModel.setThemeDesign(ThemeDesign.DYNAMIC) },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                ) { Text(stringResource(R.string.settings_appearance_dynamic)) }
-                SegmentedButton(
-                    selected = themeDesign == ThemeDesign.CLASSIC,
-                    onClick = { viewModel.setThemeDesign(ThemeDesign.CLASSIC) },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                ) { Text(stringResource(R.string.settings_appearance_classic)) }
-            }
-            Text(
-                stringResource(
-                    if (themeDesign == ThemeDesign.DYNAMIC) {
-                        R.string.settings_appearance_dynamic_hint
-                    } else {
-                        R.string.settings_appearance_classic_hint
-                    },
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                ThemeMode.entries.forEachIndexed { index, mode ->
+            SettingsSection(title = stringResource(R.string.settings_appearance), icon = Icons.Filled.Palette, index = 0) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
-                        selected = themeMode == mode,
-                        onClick = { viewModel.setThemeMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
-                    ) { Text(stringResource(themeModeLabel(mode))) }
+                        selected = themeDesign == ThemeDesign.DYNAMIC,
+                        onClick = { viewModel.setThemeDesign(ThemeDesign.DYNAMIC) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) { Text(stringResource(R.string.settings_appearance_dynamic)) }
+                    SegmentedButton(
+                        selected = themeDesign == ThemeDesign.CLASSIC,
+                        onClick = { viewModel.setThemeDesign(ThemeDesign.CLASSIC) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) { Text(stringResource(R.string.settings_appearance_classic)) }
+                }
+                Text(
+                    stringResource(
+                        if (themeDesign == ThemeDesign.DYNAMIC) {
+                            R.string.settings_appearance_dynamic_hint
+                        } else {
+                            R.string.settings_appearance_classic_hint
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                    ThemeMode.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = themeMode == mode,
+                            onClick = { viewModel.setThemeMode(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
+                        ) { Text(stringResource(themeModeLabel(mode))) }
+                    }
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-
-            Text(
-                stringResource(R.string.settings_connection_mode),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                SegmentedButton(
-                    selected = connectionMode == ConnectionMode.VPN,
-                    onClick = { viewModel.setConnectionMode(ConnectionMode.VPN) },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                ) { Text(stringResource(R.string.settings_connection_mode_vpn)) }
-                SegmentedButton(
-                    selected = connectionMode == ConnectionMode.SOCKS5,
-                    onClick = { viewModel.setConnectionMode(ConnectionMode.SOCKS5) },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                ) { Text(stringResource(R.string.settings_connection_mode_socks5)) }
-            }
-            Text(
-                stringResource(
-                    if (connectionMode == ConnectionMode.VPN) {
-                        R.string.settings_connection_mode_vpn_hint
-                    } else {
-                        R.string.settings_connection_mode_socks5_hint
-                    },
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-
-            if (mtuText != null && dnsText != null) {
-                OutlinedTextField(
-                    value = mtuText!!,
-                    onValueChange = {
-                        mtuText = it
-                        it.toIntOrNull()?.let(viewModel::setDefaultMtu)
-                    },
-                    label = { Text(stringResource(R.string.settings_default_mtu)) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                )
-                OutlinedTextField(
-                    value = dnsText!!,
-                    onValueChange = {
-                        dnsText = it
-                        viewModel.setDefaultDns(it)
-                    },
-                    label = { Text(stringResource(R.string.settings_default_dns)) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                )
-            }
-
-            if (socks5PortText != null) {
-                OutlinedTextField(
-                    value = socks5PortText!!,
-                    onValueChange = {
-                        socks5PortText = it
-                        it.toIntOrNull()?.let(viewModel::setSocks5Port)
-                    },
-                    label = { Text(stringResource(R.string.settings_socks5_port)) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            SettingsSection(title = stringResource(R.string.settings_connection_mode), icon = Icons.Filled.Shield, index = 1) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = connectionMode == ConnectionMode.VPN,
+                        onClick = { viewModel.setConnectionMode(ConnectionMode.VPN) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) { Text(stringResource(R.string.settings_connection_mode_vpn)) }
+                    SegmentedButton(
+                        selected = connectionMode == ConnectionMode.SOCKS5,
+                        onClick = { viewModel.setConnectionMode(ConnectionMode.SOCKS5) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) { Text(stringResource(R.string.settings_connection_mode_socks5)) }
+                }
                 Text(
-                    stringResource(R.string.settings_verbose_logging),
-                    modifier = Modifier.weight(1f).padding(end = 12.dp),
-                )
-                Switch(checked = verboseLogging, onCheckedChange = viewModel::setVerboseLogging)
-            }
-            Text(
-                stringResource(R.string.settings_verbose_logging_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            OutlinedButton(
-                onClick = onOpenTransports,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) {
-                Text(stringResource(R.string.settings_js_transports))
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-
-            OutlinedButton(onClick = onOpenSplitTunnel, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.settings_split_tunnel))
-            }
-
-            OutlinedButton(
-                onClick = onOpenSiteSplitTunnel,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            ) {
-                Text(stringResource(R.string.settings_site_split_tunnel))
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-
-            // Entirely optional, user-initiated: never requested automatically.
-            if (!batteryUnrestricted) {
-                Text(
-                    stringResource(R.string.settings_battery_hint),
+                    stringResource(
+                        if (connectionMode == ConnectionMode.VPN) {
+                            R.string.settings_connection_mode_vpn_hint
+                        } else {
+                            R.string.settings_connection_mode_socks5_hint
+                        },
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                 )
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(
-                            Intent(
-                                AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                                Uri.parse("package:${context.packageName}"),
-                            ),
-                        )
-                    },
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_network), icon = Icons.Filled.Tune, index = 2) {
+                if (mtuText != null && dnsText != null) {
+                    OutlinedTextField(
+                        value = mtuText!!,
+                        onValueChange = {
+                            mtuText = it
+                            it.toIntOrNull()?.let(viewModel::setDefaultMtu)
+                        },
+                        label = { Text(stringResource(R.string.settings_default_mtu)) },
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = dnsText!!,
+                        onValueChange = {
+                            dnsText = it
+                            viewModel.setDefaultDns(it)
+                        },
+                        label = { Text(stringResource(R.string.settings_default_dns)) },
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    )
+                }
+                if (socks5PortText != null) {
+                    OutlinedTextField(
+                        value = socks5PortText!!,
+                        onValueChange = {
+                            socks5PortText = it
+                            it.toIntOrNull()?.let(viewModel::setSocks5Port)
+                        },
+                        label = { Text(stringResource(R.string.settings_socks5_port)) },
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    )
+                }
+                FilledTonalButton(
+                    onClick = onOpenSplitTunnel,
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                ) { Text(stringResource(R.string.settings_split_tunnel)) }
+                FilledTonalButton(
+                    onClick = onOpenSiteSplitTunnel,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) { Text(stringResource(R.string.settings_site_split_tunnel)) }
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_js_transports), icon = Icons.Filled.Extension, index = 3) {
+                FilledTonalButton(
+                    onClick = onOpenTransports,
                     modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.settings_js_transports)) }
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_diagnostics), icon = Icons.Filled.BugReport, index = 4) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.settings_battery_optimization))
+                    Text(
+                        stringResource(R.string.settings_verbose_logging),
+                        modifier = Modifier.weight(1f).padding(end = 12.dp),
+                    )
+                    Switch(checked = verboseLogging, onCheckedChange = viewModel::setVerboseLogging)
                 }
-            } else {
                 Text(
-                    stringResource(R.string.settings_battery_already_unrestricted),
+                    stringResource(R.string.settings_verbose_logging_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
+                // Entirely optional, user-initiated: never requested automatically.
+                if (!batteryUnrestricted) {
+                    Text(
+                        stringResource(R.string.settings_battery_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 14.dp, bottom = 8.dp),
+                    )
+                    FilledTonalButton(
+                        onClick = {
+                            context.startActivity(
+                                Intent(
+                                    AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                    Uri.parse("package:${context.packageName}"),
+                                ),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.settings_battery_optimization))
+                    }
+                } else {
+                    Text(
+                        stringResource(R.string.settings_battery_already_unrestricted),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 14.dp),
+                    )
+                }
             }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

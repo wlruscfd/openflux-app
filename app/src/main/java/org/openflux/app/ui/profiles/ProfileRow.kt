@@ -31,6 +31,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import org.openflux.app.ui.design.Motion
+import org.openflux.app.ui.design.pressScale
+import org.openflux.app.ui.design.rememberHaptics
 import org.openflux.app.R
 import org.openflux.app.data.CookiePushOutcome
 import org.openflux.app.data.CookiePushRecord
@@ -49,56 +56,101 @@ fun ProfileRow(
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val selectionScale by animateFloatAsState(
-        targetValue = if (active) 1.06f else 1f,
-        animationSpec = tween(220),
-        label = "profile-active-scale",
+    val interaction = remember { MutableInteractionSource() }
+    val container by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+        animationSpec = Motion.smooth(),
+        label = "profile-container",
     )
+    val onContainer by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        animationSpec = Motion.smooth(),
+        label = "profile-on-container",
+    )
+    val avatar by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiaryContainer,
+        animationSpec = Motion.smooth(),
+        label = "profile-avatar",
+    )
+    val onAvatar by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onTertiaryContainer,
+        animationSpec = Motion.smooth(),
+        label = "profile-on-avatar",
+    )
+    val avatarScale by animateFloatAsState(
+        targetValue = if (active) 1.08f else 1f,
+        animationSpec = Motion.bouncy(),
+        label = "profile-avatar-scale",
+    )
+    val haptics = rememberHaptics()
 
-    androidx.compose.material3.Card(
+    androidx.compose.material3.Surface(
+        onClick = {
+            if (!active) haptics.tick()
+            onSelect()
+        },
+        interactionSource = interaction,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = container,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .scale(selectionScale),
-        onClick = onSelect,
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .pressScale(interaction, 0.97f),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .graphicsLayer {
+                        scaleX = avatarScale
+                        scaleY = avatarScale
+                    }
+                    .background(avatar, if (active) MaterialTheme.shapes.large else CircleShape),
+                contentAlignment = Alignment.Center,
             ) {
-                // Decorative only - the whole card's onSelect is the actual action.
-                RadioButton(selected = active, onClick = null)
-                Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                    Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    ProfileSubtitles(profile, cookieRecord)
-                }
+                Text(
+                    text = profile.name.trim().take(1).uppercase().ifEmpty { "?" },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = onAvatar,
+                )
+            }
+            Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+                Text(
+                    text = profile.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = onContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                ProfileSubtitles(profile, cookieRecord)
             }
             if (onShare != null) {
-                IconButton(onClick = onShare, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Filled.Share,
                         contentDescription = stringResource(R.string.profile_share_title),
+                        tint = onContainer.copy(alpha = 0.8f),
                         modifier = Modifier.size(18.dp),
                     )
                 }
             }
-            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp).padding(start = 4.dp)) {
+            IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Filled.Edit,
                     contentDescription = stringResource(R.string.profile_edit_title),
+                    tint = onContainer.copy(alpha = 0.8f),
                     modifier = Modifier.size(18.dp),
                 )
             }
             if (onDelete != null) {
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp).padding(start = 4.dp)) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = stringResource(R.string.profiles_delete),
+                        tint = onContainer.copy(alpha = 0.8f),
                         modifier = Modifier.size(18.dp),
                     )
                 }

@@ -34,6 +34,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import org.openflux.app.ui.design.staggeredEntrance
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
 import org.openflux.app.R
 import org.openflux.app.data.Profile
 import org.openflux.app.data.KeyResolver
@@ -156,8 +162,14 @@ fun ProfileListScreen(
                     Text(stringResource(R.string.profiles_empty), textAlign = TextAlign.Center)
                 }
             } else {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(state.profiles, key = { it.id }) { profile ->
+                Column(Modifier.fillMaxSize()) {
+                Text(
+                    text = stringResource(R.string.profiles_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 4.dp),
+                )
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)) {
+                    itemsIndexed(state.profiles, key = { _, profile -> profile.id }) { index, profile ->
                         ProfileRow(
                             profile = profile,
                             active = profile.id == state.activeProfileId,
@@ -166,9 +178,10 @@ fun ProfileListScreen(
                             onEdit = { onEditProfile(profile.id) },
                             onShare = { shareMenuProfile = profile },
                             onDelete = { viewModel.delete(profile.id) },
-                            modifier = Modifier.animateItem(),
+                            modifier = Modifier.animateItem().staggeredEntrance(index),
                         )
                     }
+                }
                 }
             }
         }

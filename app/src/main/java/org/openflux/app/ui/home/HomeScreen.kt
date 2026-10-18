@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,6 +63,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import mobile.Mobile
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.graphicsLayer
+import org.openflux.app.ui.design.AuroraBackground
+import org.openflux.app.ui.design.Motion
+import org.openflux.app.ui.design.StatPill
+import org.openflux.app.ui.design.staggeredEntrance
+import org.openflux.app.ui.design.pressScale
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
 import org.openflux.app.data.BALANCER_PROFILE_ID
@@ -180,6 +191,14 @@ fun HomeScreen(
     val captchaPending = vpnCaptchaPending || socks5CaptchaPending
     val captchaDialogShowing = captchaUrl != null
 
+    val auroraIntensity = when (buttonState) {
+        ConnectionButtonState.Idle -> 0f
+        ConnectionButtonState.Connecting -> 0.45f
+        ConnectionButtonState.Establishing -> 0.7f
+        ConnectionButtonState.Connected -> 1f
+    }
+
+    AuroraBackground(modifier = Modifier.fillMaxSize(), intensity = auroraIntensity) {
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -229,7 +248,7 @@ fun HomeScreen(
                 }
 
                 Box(
-                    modifier = Modifier.height(24.dp),
+                    modifier = Modifier.heightIn(min = 52.dp).padding(top = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (anyActive) {
@@ -248,22 +267,9 @@ fun HomeScreen(
         Box(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Button(
-                onClick = {
-                    if (homeState.profiles.isEmpty()) {
-                        onManageProfiles()
-                    } else {
-                        sheetOpen = true
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                shape = RectangleShape,
-            ) {
-                Text(
-                    text = when {
+            ProfileSelector(
+                balancer = isBalancerSelected,
+                title = when {
                         isBalancerSelected && anyActive && balancerRunningProfile != null ->
                             stringResource(R.string.balancer_profile_name) + " · " +
                                 stringResource(R.string.balancer_connecting_via, balancerRunningProfile.name)
@@ -275,18 +281,15 @@ fun HomeScreen(
                         homeState.profiles.isEmpty() -> stringResource(R.string.profiles_add)
                         else -> stringResource(R.string.home_profile_selector_select)
                     },
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                expanded = sheetOpen,
+                onClick = {
+                    if (homeState.profiles.isEmpty()) {
+                        onManageProfiles()
+                    } else {
+                        sheetOpen = true
+                    }
+                },
+            )
 
             if (sheetOpen) {
                 ProfilePickerSheet(
@@ -316,6 +319,7 @@ CaptchaWebViewDialog(
                 },
             )
         }
+    }
     }
 }
 
@@ -361,7 +365,7 @@ private fun ProfilePickerSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .background(balancerBackground)
                         .clickable {
                             if (activeProfileId == BALANCER_PROFILE_ID) {
@@ -409,7 +413,7 @@ private fun ProfilePickerSheet(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
             }
 
-            profiles.forEach { profile ->
+            profiles.forEachIndexed { index, profile ->
                 val active = profile.id == (pendingId ?: activeProfileId)
                 val background by animateColorAsState(
                     targetValue = if (active) {
@@ -421,9 +425,10 @@ private fun ProfilePickerSheet(
                 )
                 Row(
                     modifier = Modifier
+                        .staggeredEntrance(index)
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .background(background)
                         .clickable {
                             if (profile.id == activeProfileId) {
@@ -529,35 +534,73 @@ private fun Socks5Hint(port: Int) {
     }
 }
 
-// Deliberately not a Card, so it reads as part of the status text rather than its own surface.
 @Composable
 private fun TrafficLine(sent: Long, received: Long, modifier: Modifier = Modifier) {
-    val arrowTint = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            painter = painterResource(R.drawable.ic_arrow_up),
-            contentDescription = "sent",
-            tint = arrowTint,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = formatBytes(sent),
-            style = MaterialTheme.typography.bodyMedium,
-            color = arrowTint,
-        )
-        Spacer(Modifier.width(16.dp))
-        Icon(
-            painter = painterResource(R.drawable.ic_arrow_down),
-            contentDescription = "received",
-            tint = arrowTint,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = formatBytes(received),
-            style = MaterialTheme.typography.bodyMedium,
-            color = arrowTint,
-        )
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        StatPill(icon = painterResource(R.drawable.ic_arrow_up), value = formatBytes(sent))
+        StatPill(icon = painterResource(R.drawable.ic_arrow_down), value = formatBytes(received))
+    }
+}
+
+@Composable
+private fun ProfileSelector(
+    title: String,
+    balancer: Boolean,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val chevron by animateFloatAsState(if (expanded) 180f else 0f, Motion.bouncy(), label = "selector-chevron")
+    Surface(
+        onClick = onClick,
+        interactionSource = interaction,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 3.dp,
+        shadowElevation = 6.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 6.dp)
+            .pressScale(interaction, 0.97f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (balancer) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(22.dp),
+                    )
+                } else {
+                    Text(
+                        text = title.trim().take(1).uppercase().ifEmpty { "+" },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = 14.dp),
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp).graphicsLayer { rotationZ = chevron },
+            )
+        }
     }
 }

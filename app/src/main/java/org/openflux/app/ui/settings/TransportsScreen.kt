@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
 import org.openflux.app.R
+import org.openflux.app.ui.design.staggeredEntrance
 import org.openflux.app.data.SettingsRepository
 import org.openflux.app.data.TransportException
 import org.openflux.app.data.TransportInfo
@@ -324,10 +326,14 @@ fun TransportsScreen(onDone: () -> Unit) {
                 }
             }
 
-            items(viewModel.installed, key = { it.id }) { t ->
+            itemsIndexed(viewModel.installed, key = { _, t -> t.id }) { index, t ->
                 val report = viewModel.reports[t.id]
                 val rowBusy = t.id in viewModel.busy
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().staggeredEntrance(index),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(t.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
