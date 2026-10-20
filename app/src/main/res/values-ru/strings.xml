@@ -433,6 +433,11 @@
     <string name="settings_theme_mode_dark">Тёмная</string>
     <string name="settings_network">Сеть</string>
     <string name="settings_diagnostics">Диагностика и батарея</string>
+    <string name="settings_ui_style">Стиль интерфейса</string>
+    <string name="settings_ui_style_standard">Обычный</string>
+    <string name="settings_ui_style_expressive">Выразительный</string>
+    <string name="settings_ui_style_standard_hint">Привычная раскладка: нижняя панель, простые списки и карточки.</string>
+    <string name="settings_ui_style_expressive_hint">Плавающая навигация, движущийся фон-аврора, пружинные анимации и скруглённые карточки.</string>
 </resources>
 
 

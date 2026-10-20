@@ -53,6 +53,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import org.openflux.app.ui.design.Motion
+import org.openflux.app.ui.design.isExpressive
 import org.openflux.app.R
 import org.openflux.app.vpn.OpenFluxVpnService
 import org.openflux.app.vpn.RawLogEntry
@@ -65,6 +66,7 @@ fun TunnelLogsScreen() {
     val entries by OpenFluxVpnService.callback.log.collectAsState()
     val rawEntries by OpenFluxVpnService.callback.rawLog.collectAsState()
     var tab by remember { mutableIntStateOf(0) }
+    val expressive = isExpressive()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(top = 24.dp, start = 24.dp, end = 24.dp, bottom = 8.dp),
@@ -74,23 +76,30 @@ fun TunnelLogsScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.nav_logs), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.nav_logs), style = if (expressive) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall)
             IconButton(onClick = { OpenFluxVpnService.callback.clearLog() }) {
                 Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.logs_clear))
             }
         }
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
-            SegmentedButton(
-                selected = tab == 0,
-                onClick = { tab = 0 },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-            ) { Text(stringResource(R.string.logs_tab_events)) }
-            SegmentedButton(
-                selected = tab == 1,
-                onClick = { tab = 1 },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            ) { Text(stringResource(R.string.logs_tab_kernel)) }
+        if (expressive) {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
+                SegmentedButton(
+                    selected = tab == 0,
+                    onClick = { tab = 0 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                ) { Text(stringResource(R.string.logs_tab_events)) }
+                SegmentedButton(
+                    selected = tab == 1,
+                    onClick = { tab = 1 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                ) { Text(stringResource(R.string.logs_tab_kernel)) }
+            }
+        } else {
+            TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.logs_tab_events)) })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.logs_tab_kernel)) })
+            }
         }
 
         if (tab == 0) {
@@ -130,6 +139,11 @@ private fun RawLogRow(entry: RawLogEntry) {
 
 @Composable
 private fun LogRow(entry: TunnelLogEntry) {
+    if (isExpressive()) LogRowExpressive(entry) else LogRowClassic(entry)
+}
+
+@Composable
+private fun LogRowExpressive(entry: TunnelLogEntry) {
     val tone = toneFor(entry.kind)
     // ERROR already inlines entry.detail into its own logText() line, so only offer to expand it otherwise.
     val hasHiddenDetail = entry.detail.isNotBlank() && entry.kind != TunnelLogKind.ERROR
@@ -176,6 +190,50 @@ private fun LogRow(entry: TunnelLogEntry) {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun LogRowClassic(entry: TunnelLogEntry) {
+    val tone = toneFor(entry.kind)
+    // ERROR already inlines entry.detail into its own logText() line, so only offer to expand it otherwise.
+    val hasHiddenDetail = entry.detail.isNotBlank() && entry.kind != TunnelLogKind.ERROR
+    var expanded by remember(entry.id) { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (hasHiddenDetail) it.clickable { expanded = !expanded } else it }
+            .animateContentSize()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(tone.icon, contentDescription = null, tint = tone.color, modifier = Modifier.padding(top = 2.dp))
+        Column(Modifier.padding(start = 12.dp).weight(1f)) {
+            Text(logText(entry))
+            Text(
+                formatTime(entry.timestampMillis),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (expanded && hasHiddenDetail) {
+                Text(
+                    entry.detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+        if (hasHiddenDetail) {
+            Icon(
+                if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = stringResource(
+                    if (expanded) R.string.logs_collapse_detail else R.string.logs_expand_detail,
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

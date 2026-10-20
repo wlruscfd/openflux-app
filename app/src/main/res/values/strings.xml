@@ -436,6 +436,11 @@
     <string name="settings_theme_mode_dark">Dark</string>
     <string name="settings_network">Network</string>
     <string name="settings_diagnostics">Diagnostics and battery</string>
+    <string name="settings_ui_style">Interface style</string>
+    <string name="settings_ui_style_standard">Standard</string>
+    <string name="settings_ui_style_expressive">Expressive</string>
+    <string name="settings_ui_style_standard_hint">The classic layout: bottom bar, plain lists and cards.</string>
+    <string name="settings_ui_style_expressive_hint">Floating navigation, a drifting aurora background, springy animations and rounded cards.</string>
 </resources>
 
 

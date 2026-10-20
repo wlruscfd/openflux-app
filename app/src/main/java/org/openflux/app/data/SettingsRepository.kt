@@ -38,6 +38,16 @@ enum class ThemeDesign {
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+enum class UiStyle {
+    STANDARD,
+    EXPRESSIVE;
+
+    companion object {
+        fun parse(raw: String?): UiStyle =
+            runCatching { UiStyle.valueOf(raw ?: "") }.getOrDefault(STANDARD)
+    }
+}
+
 /** App-level (not per-profile) flexible settings. */
 class SettingsRepository(private val context: Context) {
 
@@ -49,6 +59,13 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setThemeDesign(design: ThemeDesign) = withContext(NonCancellable) {
         context.dataStore.edit { it[Keys.THEME_DESIGN] = design.name }
+    }
+
+    val uiStyle: Flow<UiStyle> =
+        context.dataStore.data.map { UiStyle.parse(it[Keys.UI_STYLE]) }
+
+    suspend fun setUiStyle(style: UiStyle) = withContext(NonCancellable) {
+        context.dataStore.edit { it[Keys.UI_STYLE] = style.name }
     }
 
     val themeMode: Flow<ThemeMode> =
@@ -179,6 +196,7 @@ class SettingsRepository(private val context: Context) {
         val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
         val THEME_DESIGN = stringPreferencesKey("theme_design")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val UI_STYLE = stringPreferencesKey("ui_style")
         val LAST_CONNECTED_PROFILE_ID = stringPreferencesKey("last_connected_profile_id")
         val CONNECTION_MODE = stringPreferencesKey("connection_mode")
         val DEFAULT_MTU = intPreferencesKey("default_mtu")

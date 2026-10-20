@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.itemsIndexed
+import org.openflux.app.ui.design.isExpressive
 import org.openflux.app.ui.design.staggeredEntrance
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
@@ -118,6 +119,7 @@ fun ProfileListScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
+    val expressive = isExpressive()
     var fabExpanded by remember { mutableStateOf(false) }
     var shareMenuProfile by remember { mutableStateOf<Profile?>(null) }
     var qrProfile by remember { mutableStateOf<Profile?>(null) }
@@ -163,12 +165,17 @@ fun ProfileListScreen(
                 }
             } else {
                 Column(Modifier.fillMaxSize()) {
-                Text(
-                    text = stringResource(R.string.profiles_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 4.dp),
-                )
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)) {
+                if (expressive) {
+                    Text(
+                        text = stringResource(R.string.profiles_title),
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 4.dp),
+                    )
+                }
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = if (expressive) PaddingValues(top = 8.dp, bottom = 96.dp) else PaddingValues(),
+                ) {
                     itemsIndexed(state.profiles, key = { _, profile -> profile.id }) { index, profile ->
                         ProfileRow(
                             profile = profile,
@@ -178,7 +185,7 @@ fun ProfileListScreen(
                             onEdit = { onEditProfile(profile.id) },
                             onShare = { shareMenuProfile = profile },
                             onDelete = { viewModel.delete(profile.id) },
-                            modifier = Modifier.animateItem().staggeredEntrance(index),
+                            modifier = if (expressive) Modifier.animateItem().staggeredEntrance(index) else Modifier.animateItem(),
                         )
                     }
                 }

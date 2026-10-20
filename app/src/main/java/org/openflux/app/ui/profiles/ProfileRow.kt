@@ -36,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.graphicsLayer
 import org.openflux.app.ui.design.Motion
+import org.openflux.app.ui.design.isExpressive
 import org.openflux.app.ui.design.pressScale
 import org.openflux.app.ui.design.rememberHaptics
 import org.openflux.app.R
@@ -44,9 +45,27 @@ import org.openflux.app.data.CookiePushRecord
 import org.openflux.app.data.Profile
 import org.openflux.app.data.transportLabel
 
-// Editing/deleting are separate icon actions so they can't be triggered by accident while just selecting.
 @Composable
 fun ProfileRow(
+    profile: Profile,
+    active: Boolean,
+    onSelect: () -> Unit,
+    onEdit: () -> Unit,
+    cookieRecord: CookiePushRecord? = null,
+    onShare: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    if (isExpressive()) {
+        ProfileRowExpressive(profile, active, onSelect, onEdit, cookieRecord, onShare, onDelete, modifier)
+    } else {
+        ProfileRowClassic(profile, active, onSelect, onEdit, cookieRecord, onShare, onDelete, modifier)
+    }
+}
+
+// Editing/deleting are separate icon actions so they can't be triggered by accident while just selecting.
+@Composable
+private fun ProfileRowExpressive(
     profile: Profile,
     active: Boolean,
     onSelect: () -> Unit,
@@ -151,6 +170,75 @@ fun ProfileRow(
                         Icons.Filled.Delete,
                         contentDescription = stringResource(R.string.profiles_delete),
                         tint = onContainer.copy(alpha = 0.8f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileRowClassic(
+    profile: Profile,
+    active: Boolean,
+    onSelect: () -> Unit,
+    onEdit: () -> Unit,
+    cookieRecord: CookiePushRecord? = null,
+    onShare: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    val selectionScale by animateFloatAsState(
+        targetValue = if (active) 1.06f else 1f,
+        animationSpec = tween(220),
+        label = "profile-active-scale",
+    )
+
+    androidx.compose.material3.Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .scale(selectionScale),
+        onClick = onSelect,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Decorative only - the whole card's onSelect is the actual action.
+                RadioButton(selected = active, onClick = null)
+                Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                    Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    ProfileSubtitles(profile, cookieRecord)
+                }
+            }
+            if (onShare != null) {
+                IconButton(onClick = onShare, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Filled.Share,
+                        contentDescription = stringResource(R.string.profile_share_title),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp).padding(start = 4.dp)) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = stringResource(R.string.profile_edit_title),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            if (onDelete != null) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp).padding(start = 4.dp)) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = stringResource(R.string.profiles_delete),
                         modifier = Modifier.size(18.dp),
                     )
                 }

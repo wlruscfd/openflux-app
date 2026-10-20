@@ -68,8 +68,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.graphicsLayer
-import org.openflux.app.ui.design.AuroraBackground
 import org.openflux.app.ui.design.Motion
+import org.openflux.app.ui.design.isExpressive
+import org.openflux.app.ui.design.StyledBackdrop
 import org.openflux.app.ui.design.StatPill
 import org.openflux.app.ui.design.staggeredEntrance
 import org.openflux.app.ui.design.pressScale
@@ -191,6 +192,7 @@ fun HomeScreen(
     val captchaPending = vpnCaptchaPending || socks5CaptchaPending
     val captchaDialogShowing = captchaUrl != null
 
+    val expressive = isExpressive()
     val auroraIntensity = when (buttonState) {
         ConnectionButtonState.Idle -> 0f
         ConnectionButtonState.Connecting -> 0.45f
@@ -198,7 +200,7 @@ fun HomeScreen(
         ConnectionButtonState.Connected -> 1f
     }
 
-    AuroraBackground(modifier = Modifier.fillMaxSize(), intensity = auroraIntensity) {
+    StyledBackdrop(expressive = expressive, intensity = auroraIntensity) {
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -212,7 +214,8 @@ fun HomeScreen(
                 modifier = Modifier.padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                ConnectionButton(
+                if (expressive) {
+                    ConnectionButton(
                     state = buttonState,
                     label = statusLabel(
                         if (socks5Active) socks5Status else status,
@@ -234,6 +237,30 @@ fun HomeScreen(
                         }
                     },
                 )
+                } else {
+                    ConnectionButtonClassic(
+                    state = buttonState,
+                    label = statusLabel(
+                        if (socks5Active) socks5Status else status,
+                        if (socks5Active) socks5ChannelReady else channelReady,
+                        if (socks5Active) socks5RetryDetail else lastRetryDetail,
+                        captchaPending,
+                        captchaDialogShowing,
+                        if (socks5Active) socks5ConnectivityOk else connectivityOk,
+                    ),
+                    // Starting one mode now stops the other, so neither button has to be disabled
+                    // for the other - that coupling is what used to leave both unusable.
+                    enabled = buttonState != ConnectionButtonState.Idle || connectTarget != null,
+                    onClick = {
+                        when {
+                            socks5Active -> onSocks5StopRequested()
+                            vpnActive -> onDisconnectRequested()
+                            connectionMode == ConnectionMode.SOCKS5 -> connectTarget?.let { onSocks5Requested(it.id) }
+                            else -> connectTarget?.let { onConnectRequested(it.id) }
+                        }
+                    },
+                )
+                }
 
                 if (captchaPending && !captchaDialogShowing) {
                     TextButton(
@@ -248,12 +275,16 @@ fun HomeScreen(
                 }
 
                 Box(
-                    modifier = Modifier.heightIn(min = 52.dp).padding(top = 12.dp),
+                    modifier = if (expressive) Modifier.heightIn(min = 52.dp).padding(top = 12.dp) else Modifier.height(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (anyActive) {
                         val live = if (socks5Active) socks5Stats else stats
-                        TrafficLine(sent = live.bytesSent, received = live.bytesReceived)
+                        if (expressive) {
+                            TrafficLine(sent = live.bytesSent, received = live.bytesReceived)
+                        } else {
+                            TrafficLineClassic(sent = live.bytesSent, received = live.bytesReceived)
+                        }
                     }
                 }
 
@@ -267,9 +298,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            ProfileSelector(
-                balancer = isBalancerSelected,
-                title = when {
+            val selectorTitle = when {
                         isBalancerSelected && anyActive && balancerRunningProfile != null ->
                             stringResource(R.string.balancer_profile_name) + " · " +
                                 stringResource(R.string.balancer_connecting_via, balancerRunningProfile.name)
@@ -280,16 +309,24 @@ fun HomeScreen(
                         activeProfile != null -> activeProfile.name
                         homeState.profiles.isEmpty() -> stringResource(R.string.profiles_add)
                         else -> stringResource(R.string.home_profile_selector_select)
-                    },
-                expanded = sheetOpen,
-                onClick = {
+                    }
+            val selectorClick = {
                     if (homeState.profiles.isEmpty()) {
                         onManageProfiles()
                     } else {
                         sheetOpen = true
                     }
-                },
-            )
+                }
+            if (expressive) {
+                ProfileSelector(
+                    balancer = isBalancerSelected,
+                    title = selectorTitle,
+                    expanded = sheetOpen,
+                    onClick = selectorClick,
+                )
+            } else {
+                ProfileSelectorClassic(title = selectorTitle, onClick = selectorClick)
+            }
 
             if (sheetOpen) {
                 ProfilePickerSheet(
@@ -332,6 +369,7 @@ private fun ProfilePickerSheet(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val expressive = isExpressive()
     // pendingId reflects the tap immediately so the checkmark can animate before onSelect's dismiss tears the sheet down.
     var pendingId by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -365,7 +403,7 @@ private fun ProfilePickerSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(if (expressive) 20.dp else 12.dp))
                         .background(balancerBackground)
                         .clickable {
                             if (activeProfileId == BALANCER_PROFILE_ID) {
@@ -425,10 +463,10 @@ private fun ProfilePickerSheet(
                 )
                 Row(
                     modifier = Modifier
-                        .staggeredEntrance(index)
+                        .let { if (expressive) it.staggeredEntrance(index) else it }
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(if (expressive) 20.dp else 12.dp))
                         .background(background)
                         .clickable {
                             if (profile.id == activeProfileId) {
@@ -602,5 +640,64 @@ private fun ProfileSelector(
                 modifier = Modifier.size(28.dp).graphicsLayer { rotationZ = chevron },
             )
         }
+    }
+}
+
+// Deliberately not a Card, so it reads as part of the status text rather than its own surface.
+@Composable
+private fun TrafficLineClassic(sent: Long, received: Long, modifier: Modifier = Modifier) {
+    val arrowTint = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            painter = painterResource(R.drawable.ic_arrow_up),
+            contentDescription = "sent",
+            tint = arrowTint,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = formatBytes(sent),
+            style = MaterialTheme.typography.bodyMedium,
+            color = arrowTint,
+        )
+        Spacer(Modifier.width(16.dp))
+        Icon(
+            painter = painterResource(R.drawable.ic_arrow_down),
+            contentDescription = "received",
+            tint = arrowTint,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = formatBytes(received),
+            style = MaterialTheme.typography.bodyMedium,
+            color = arrowTint,
+        )
+    }
+}
+
+@Composable
+private fun ProfileSelectorClassic(title: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RectangleShape,
+    ) {
+        Text(
+            text = title,
+            maxLines = 1,
+            color = MaterialTheme.colorScheme.onSurface,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.Filled.ArrowDropDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }

@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +46,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.openflux.app.R
 import org.openflux.app.ui.design.FloatingNavBar
+import org.openflux.app.ui.design.isExpressive
 import org.openflux.app.ui.design.NavBarItem
 import org.openflux.app.data.Profile
 import org.openflux.app.data.ProfileDeepLink
@@ -124,6 +127,7 @@ fun OpenFluxNavHost(
         onDeepLinkHandled()
     }
 
+    val expressive = isExpressive()
     val density = LocalDensity.current
     val keyboardOpen = with(density) { WindowInsets.ime.getBottom(density).toDp() } > KEYBOARD_MIN_HEIGHT
 
@@ -133,18 +137,42 @@ fun OpenFluxNavHost(
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
             if (currentDestination?.route in TAB_ROUTES || !keyboardOpen) {
-                val navItems = tabs.map { NavBarItem(it.route, stringResourceCompat(it.labelRes), it.icon) }
-                val selectedRoute = tabs.firstOrNull { tab -> currentDestination?.hierarchy?.any { it.route == tab.route } == true }?.route
-                FloatingNavBar(
-                    items = navItems,
-                    selectedRoute = selectedRoute,
-                    onSelect = { item ->
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.findStartDestination().id)
-                            launchSingleTop = true
-                        }
-                    },
-                )
+                if (expressive) {
+                    val navItems = tabs.map { NavBarItem(it.route, stringResourceCompat(it.labelRes), it.icon) }
+                    val selectedRoute = tabs.firstOrNull { tab -> currentDestination?.hierarchy?.any { it.route == tab.route } == true }?.route
+                    FloatingNavBar(
+                        items = navItems,
+                        selectedRoute = selectedRoute,
+                        onSelect = { item ->
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.findStartDestination().id)
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                } else NavigationBar {
+                    tabs.forEach { tab ->
+                        val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(tab.route) {
+                                    // No saveState/restoreState: it previously let a stale "new profile" draft reappear.
+                                    popUpTo(navController.graph.findStartDestination().id)
+                                    launchSingleTop = true
+                                }
+                            },
+                            icon = { Icon(tab.icon, contentDescription = null) },
+                            label = {
+                                Text(
+                                    stringResourceCompat(tab.labelRes),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                        )
+                    }
+                }
             }
         },
     ) { padding ->
@@ -154,38 +182,58 @@ fun OpenFluxNavHost(
             modifier = androidx.compose.ui.Modifier.padding(padding),
             enterTransition = {
                 if (isTabSwitch()) {
-                    fadeIn(tween(TAB_FADE_MS, delayMillis = 60)) +
-                        scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)) +
-                        slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 24 }
-                } else {
+                    if (expressive) {
+                        fadeIn(tween(TAB_FADE_MS, delayMillis = 60)) +
+                            scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)) +
+                            slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 24 }
+                    } else {
+                        fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
+                    }
+                } else if (expressive) {
                     slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, spring(dampingRatio = 0.86f, stiffness = 340f)) { it / 3 } +
+                        fadeIn(tween(PUSH_SLIDE_MS))
+                } else {
+                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(PUSH_SLIDE_MS)) +
                         fadeIn(tween(PUSH_SLIDE_MS))
                 }
             },
             exitTransition = {
                 if (isTabSwitch()) {
                     fadeOut(tween(TAB_FADE_MS)) + scaleOut(targetScale = TAB_SCALE_OUT_END, animationSpec = tween(TAB_FADE_MS))
-                } else {
+                } else if (expressive) {
                     slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, spring(dampingRatio = 0.9f, stiffness = 340f)) { it / 5 } +
                         fadeOut(tween(PUSH_SLIDE_MS / 2))
+                } else {
+                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(PUSH_SLIDE_MS)) +
+                        fadeOut(tween(PUSH_SLIDE_MS))
                 }
             },
             popEnterTransition = {
                 if (isTabSwitch()) {
-                    fadeIn(tween(TAB_FADE_MS, delayMillis = 60)) +
-                        scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)) +
-                        slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 24 }
-                } else {
+                    if (expressive) {
+                        fadeIn(tween(TAB_FADE_MS, delayMillis = 60)) +
+                            scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)) +
+                            slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 24 }
+                    } else {
+                        fadeIn(tween(TAB_FADE_MS)) + scaleIn(initialScale = TAB_SCALE_IN_START, animationSpec = tween(TAB_FADE_MS))
+                    }
+                } else if (expressive) {
                     slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, spring(dampingRatio = 0.9f, stiffness = 340f)) { it / 5 } +
+                        fadeIn(tween(PUSH_SLIDE_MS))
+                } else {
+                    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(PUSH_SLIDE_MS)) +
                         fadeIn(tween(PUSH_SLIDE_MS))
                 }
             },
             popExitTransition = {
                 if (isTabSwitch()) {
                     fadeOut(tween(TAB_FADE_MS)) + scaleOut(targetScale = TAB_SCALE_OUT_END, animationSpec = tween(TAB_FADE_MS))
-                } else {
+                } else if (expressive) {
                     slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, spring(dampingRatio = 0.86f, stiffness = 340f)) { it / 3 } +
                         fadeOut(tween(PUSH_SLIDE_MS / 2))
+                } else {
+                    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(PUSH_SLIDE_MS)) +
+                        fadeOut(tween(PUSH_SLIDE_MS))
                 }
             },
         ) {

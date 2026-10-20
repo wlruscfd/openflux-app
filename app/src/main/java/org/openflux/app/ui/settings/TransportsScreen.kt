@@ -50,6 +50,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.openflux.app.LocalOpenFluxApp
+import org.openflux.app.ui.design.isExpressive
 import org.openflux.app.R
 import org.openflux.app.ui.design.staggeredEntrance
 import org.openflux.app.data.SettingsRepository
@@ -240,6 +241,7 @@ fun TransportsScreen(onDone: () -> Unit) {
     var confirmWire by remember { mutableStateOf<String?>(null) }
     var confirmRemove by remember { mutableStateOf<String?>(null) }
 
+    val expressive = isExpressive()
     val globalBusy = "*" in viewModel.busy || "add" in viewModel.busy
     val installedIds = viewModel.installed.map { it.id }.toSet()
     val pending = viewModel.reports.values.filter { it.id !in installedIds && it.id != "catalog" && it.status != "error" && it.status != "up_to_date" }
@@ -330,9 +332,13 @@ fun TransportsScreen(onDone: () -> Unit) {
                 val report = viewModel.reports[t.id]
                 val rowBusy = t.id in viewModel.busy
                 Card(
-                    modifier = Modifier.fillMaxWidth().staggeredEntrance(index),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    modifier = Modifier.fillMaxWidth().let { if (expressive) it.staggeredEntrance(index) else it },
+                    shape = if (expressive) MaterialTheme.shapes.extraLarge else CardDefaults.shape,
+                    colors = if (expressive) {
+                        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                    } else {
+                        CardDefaults.cardColors()
+                    },
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
