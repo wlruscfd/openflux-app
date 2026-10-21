@@ -57,7 +57,7 @@ class ProfileDocRefresher(
         var updated = 0
         var stillBlank = 0
         for (profile in profiles) {
-            if (!isBlank(profile)) continue
+            if (!isBlank(profile) && !profile.ownsRooms()) continue
             if (resolve(profile, viaTunnel) != null) updated++ else stillBlank++
         }
         return Pass(updated, stillBlank)
@@ -65,6 +65,8 @@ class ProfileDocRefresher(
 
     private fun isBlank(profile: Profile) = profile.docUrl.isBlank() && profile.docUrls.isEmpty() &&
         profile.controlUrl.isNotBlank() && profile.keyToken.isNotBlank()
+
+    private fun Profile.ownsRooms() = manualTransport == ManualTransport.CUPS || manualTransport == ManualTransport.AVITO
 
     private suspend fun resolve(profile: Profile, viaTunnel: Boolean): Profile? {
         val resolved = KeyResolver(socksPort).resolve(profile.controlUrl, profile.keyToken, viaTunnel) ?: return null
@@ -78,7 +80,8 @@ class ProfileDocRefresher(
         }
         val saved = saveLock.withLock {
             val current = profileRepository.getById(profile.id) ?: return null
-            if (current.docUrl.isNotBlank() || current.docUrls.isNotEmpty()) return current
+            val replaces = current.ownsRooms() && docUrl.isNotBlank() && docUrl != current.docUrl
+            if (!replaces && (current.docUrl.isNotBlank() || current.docUrls.isNotEmpty())) return current
             profileRepository.save(
                 current.copy(
                     docUrl = if (docUrl.isNotBlank()) docUrl else current.docUrl,
