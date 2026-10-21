@@ -65,12 +65,13 @@ class OpenFluxSocks5Service : Service() {
         connectJob = serviceScope.launch {
             previousConnectJob?.cancelAndJoin()
             val app = application as OpenFluxApplication
-            val profile = app.profileRepository.getById(profileId)
-            if (profile == null) {
+            val stored = app.profileRepository.getById(profileId)
+            if (stored == null) {
                 callback.onStatus("error:profile not found")
                 stopSelf()
                 return@launch
             }
+            val profile = app.docRefresher.ensureResolved(stored)
             if (!profile.isReadyToConnect) {
                 val reason = if (profile.manualTransport == ManualTransport.YANDEX_MULTISTREAM) {
                     "multistream needs 2+ doc URLs - open the profile and add another"

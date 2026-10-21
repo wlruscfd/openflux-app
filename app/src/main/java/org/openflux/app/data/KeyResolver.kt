@@ -37,7 +37,7 @@ class KeyResolver(private val socksPort: () -> Int = { 0 }) {
             if (port > 0) {
                 builder.proxy(Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", port)))
             }
-            CookiePushClient.applyPermissiveTls(builder)
+            ControlTrust.apply(builder, base)
 
             val request = Request.Builder()
                 .url("$base/v1/resolve")

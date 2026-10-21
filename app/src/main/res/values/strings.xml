@@ -426,4 +426,5 @@
     <string name="profile_edit_transport_script">Script</string>
     <string name="profile_edit_script_pick">Installed transport</string>
     <string name="profile_edit_script_none">No transports installed. Add one in Settings, JS transports.</string>
+    <string name="profile_edit_forget_cert">Forget the server certificate (use after reinstalling the server)</string>
 </resources>

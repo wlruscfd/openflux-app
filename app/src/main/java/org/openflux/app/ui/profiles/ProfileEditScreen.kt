@@ -501,6 +501,19 @@ fun ProfileEditScreen(
                 )
             }
 
+            var certPinned by remember(current.controlUrl) { mutableStateOf(org.openflux.app.data.ControlTrust.isPinned(current.controlUrl)) }
+            if (certPinned) {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        org.openflux.app.data.ControlTrust.forget(current.controlUrl)
+                        certPinned = false
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.profile_edit_forget_cert))
+                }
+            }
+
             if (cookiePushAvailable(current)) {
                 OutlinedButton(
                     onClick = { tunnelPickerOpen = true },

@@ -84,23 +84,7 @@ class CookiePushClient(
         if (route == PushRoute.VIA_TUNNEL) {
             builder.proxy(Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", socksPort)))
         }
-        applyPermissiveTls(builder)
+        ControlTrust.apply(builder, baseUrl)
         return builder.build()
-    }
-
-    companion object {
-        fun applyPermissiveTls(builder: OkHttpClient.Builder) {
-            val trustManager = object : javax.net.ssl.X509TrustManager {
-                override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) = Unit
-                override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) = Unit
-                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = emptyArray()
-            }
-            runCatching {
-                javax.net.ssl.SSLContext.getInstance("TLS").apply {
-                    init(null, arrayOf(trustManager), java.security.SecureRandom())
-                }
-            }.onSuccess { builder.sslSocketFactory(it.socketFactory, trustManager) }
-            builder.hostnameVerifier { _, _ -> true }
-        }
     }
 }

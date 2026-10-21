@@ -423,4 +423,5 @@
     <string name="profile_edit_transport_script">Script</string>
     <string name="profile_edit_script_pick">Установленный транспорт</string>
     <string name="profile_edit_script_none">Транспортов нет. Добавьте в Настройки, JS-транспорты.</string>
+    <string name="profile_edit_forget_cert">Забыть сертификат сервера (после переустановки сервера)</string>
 </resources>

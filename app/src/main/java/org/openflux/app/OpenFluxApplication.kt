@@ -49,6 +49,7 @@ class OpenFluxApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        org.openflux.app.data.ControlTrust.init(this)
         val db = AppDatabase.build(this)
         val secrets = SecretsStore(this)
         profileRepository = ProfileRepository(db.profileDao(), secrets)

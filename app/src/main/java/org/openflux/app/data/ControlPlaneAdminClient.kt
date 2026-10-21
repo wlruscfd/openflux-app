@@ -2,11 +2,7 @@ package org.openflux.app.data
 
 import java.io.IOException
 import java.net.URLEncoder
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
-import javax.net.ssl.SSLContext
-import javax.net.ssl.X509TrustManager
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -71,6 +67,12 @@ data class KeyToken(val token: String, val deepLink: String?)
 
 // Talks to controlplane's admin JSON API; every method is a blocking network call, invoke off the main thread.
 class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .also { ControlTrust.apply(it, baseUrl) }
+        .build()
+
     private val baseUrl = baseUrl.trimEnd('/')
 
     fun listNodes(): List<AdminNode> = requestArray("GET", "/v1/admin/nodes").map { obj ->
@@ -253,26 +255,6 @@ class ControlPlaneAdminClient(baseUrl: String, private val adminToken: String) {
                 throw IOException(message)
             }
             return text
-        }
-    }
-
-    companion object {
-        private val httpClient: OkHttpClient by lazy {
-            val builder = OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-            val trustManager = permissiveTrustManager()
-            runCatching {
-                SSLContext.getInstance("TLS").apply { init(null, arrayOf(trustManager), SecureRandom()) }
-            }.onSuccess { builder.sslSocketFactory(it.socketFactory, trustManager) }
-            builder.hostnameVerifier { _, _ -> true }
-            builder.build()
-        }
-
-        private fun permissiveTrustManager(): X509TrustManager = object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) = Unit
-            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) = Unit
-            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
         }
     }
 }

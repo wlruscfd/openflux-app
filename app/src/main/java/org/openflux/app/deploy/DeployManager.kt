@@ -104,6 +104,7 @@ object DeployManager {
 
         _status.update { it + (id to DeployStatus.RUNNING) }
         repository.recordDeployStarted(id)
+        org.openflux.app.data.ControlTrust.forget(server.baseUrl)
 
         var fingerprint = server.knownHostKeyFingerprint
         val callback = object : DeployCallback {
