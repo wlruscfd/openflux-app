@@ -6,7 +6,7 @@ import org.junit.Test
 
 class OneWayDetectorTest {
     private var clock = 0L
-    private val detector = OneWayDetector(now = { clock }, confirmMs = 7_000, minSentBytes = 20_000)
+    private val detector = OneWayDetector(now = { clock }, confirmMs = 7_000, minSentBytes = 20_000, repeatMs = 60_000)
 
     @Test
     fun nothingIsReportedUntilTheChannelIsReady() {
@@ -32,6 +32,10 @@ class OneWayDetectorTest {
         assertNull(detector.sample(true, 60_000, 0))
         clock = 20_000
         assertNull(detector.sample(true, 90_000, 0))
+        clock = 68_000
+        assertEquals(false, detector.sample(true, 120_000, 0)?.ok)
+        clock = 70_000
+        assertNull(detector.sample(true, 125_000, 0))
     }
 
     @Test
