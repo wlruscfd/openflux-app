@@ -1,6 +1,8 @@
 package org.openflux.app.vpn
 
 import java.util.concurrent.atomic.AtomicLong
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +61,7 @@ data class RawLogEntry(val id: Long, val timestampMillis: Long, val line: String
 
 private const val MAX_LOG_ENTRIES = 500
 private const val MAX_RAW_LOG_ENTRIES = 2000
+private const val RAW_PUBLISH_INTERVAL_MS = 250L
 private val nextLogEntryId = AtomicLong(0)
 
 // Republishes the gomobile-bound `mobile.Callback` interface as Kotlin StateFlows, safe to update from any thread.
@@ -99,8 +102,8 @@ class MobileCallback : Callback {
     private val _captchaDocUrl = MutableStateFlow<String?>(null)
     val captchaDocUrl: StateFlow<String?> = _captchaDocUrl
 
-    private var pendingCaptchaUrl: String? = null
-    private var suppressedCaptchaUrl: String? = null
+    @Volatile private var pendingCaptchaUrl: String? = null
+    @Volatile private var suppressedCaptchaUrl: String? = null
 
     // Stays true while a check is unresolved, including after the dialog was dismissed, so the
     // UI can offer to reopen it instead of only auto-showing it the first time.
@@ -220,9 +223,29 @@ class MobileCallback : Callback {
         appendLog(entry)
     }
 
+    // The engine can emit hundreds of lines a second; copying a 2000-entry list for each one is what burns the battery, so lines go into a ring and the visible list is rebuilt at most a few times a second.
+    private val rawBuffer = ArrayDeque<RawLogEntry>()
+    private val rawLock = Any()
+    private val rawHandler = Handler(Looper.getMainLooper())
+    private var rawPublishScheduled = false
+    private val rawPublish = Runnable {
+        val snapshot = synchronized(rawLock) {
+            rawPublishScheduled = false
+            rawBuffer.toList()
+        }
+        _rawLog.value = snapshot
+    }
+
     override fun onRawLog(line: String) {
         val entry = RawLogEntry(nextLogEntryId.getAndIncrement(), System.currentTimeMillis(), line)
-        _rawLog.update { (it + entry).takeLast(MAX_RAW_LOG_ENTRIES) }
+        synchronized(rawLock) {
+            rawBuffer.addLast(entry)
+            while (rawBuffer.size > MAX_RAW_LOG_ENTRIES) rawBuffer.removeFirst()
+            if (!rawPublishScheduled) {
+                rawPublishScheduled = true
+                rawHandler.postDelayed(rawPublish, RAW_PUBLISH_INTERVAL_MS)
+            }
+        }
     }
 
     private fun appendLifecycleLog(status: String) {
@@ -250,6 +273,7 @@ class MobileCallback : Callback {
 
     fun clearLog() {
         _log.value = emptyList()
+        synchronized(rawLock) { rawBuffer.clear() }
         _rawLog.value = emptyList()
     }
 

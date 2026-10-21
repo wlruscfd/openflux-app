@@ -27,45 +27,17 @@ class TunnelHealthChecker(
     fun start() {
         stop()
         job = scope.launch {
-            var baselineSent = stats.value.bytesSent
-            var baselineReceived = stats.value.bytesReceived
-            var oneWaySince: Long? = null
+            val detector = OneWayDetector()
+            detector.start(stats.value.bytesSent, stats.value.bytesReceived)
 
             while (isActive) {
                 delay(CHECK_INTERVAL_MS)
-
-                if (!channelReady.value) {
-                    baselineSent = stats.value.bytesSent
-                    baselineReceived = stats.value.bytesReceived
-                    oneWaySince = null
-                    onResult(null)
-                    continue
-                }
-
                 val current = stats.value
-                val sentDelta = current.bytesSent - baselineSent
-                val receivedDelta = current.bytesReceived - baselineReceived
-
-                when {
-                    receivedDelta > 0 -> {
-                        baselineSent = current.bytesSent
-                        baselineReceived = current.bytesReceived
-                        oneWaySince = null
-                        onResult(true)
-                    }
-                    sentDelta >= MIN_SENT_BYTES_TO_JUDGE -> {
-                        val since = oneWaySince ?: System.currentTimeMillis().also { oneWaySince = it }
-                        if (System.currentTimeMillis() - since >= ONE_WAY_CONFIRM_MS) {
-                            Log.i(
-                                "OpenFluxHealth",
-                                "$tag verdict=ONE_WAY sent=$sentDelta recv=$receivedDelta " +
-                                    "totalSent=${current.bytesSent} totalRecv=${current.bytesReceived} " +
-                                    "heldMs=${System.currentTimeMillis() - since}",
-                            )
-                            onResult(false)
-                        }
-                    }
+                val change = detector.sample(channelReady.value, current.bytesSent, current.bytesReceived) ?: continue
+                if (change.ok == false) {
+                    Log.i("OpenFluxHealth", "$tag verdict=ONE_WAY totalSent=${current.bytesSent} totalRecv=${current.bytesReceived}")
                 }
+                onResult(change.ok)
             }
         }
     }
@@ -77,7 +49,5 @@ class TunnelHealthChecker(
 
     companion object {
         private const val CHECK_INTERVAL_MS = 2_500L
-        private const val MIN_SENT_BYTES_TO_JUDGE = 20_000L
-        private const val ONE_WAY_CONFIRM_MS = 7_000L
     }
 }
